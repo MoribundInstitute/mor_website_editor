@@ -364,7 +364,7 @@ pub fn AssetEditorDock(props: AssetEditorProps) -> Element {
                     let current_content = content_signal.read().clone();
                     let timestamp = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .map(|d| d.as_secs().to_string())
+                        .map(|d| d.as_secs())
                         .unwrap_or_default();
 
                     let payload = serde_json::json!({
@@ -373,6 +373,15 @@ pub fn AssetEditorDock(props: AssetEditorProps) -> Element {
                         "timestamp": timestamp
                     });
                     let _ = std::fs::write("/tmp/mor_website_live_state.json", payload.to_string());
+                    // Merge unsaved buffer into Robot Assist session for MCP get_session.
+                    if let Ok(mut snap) = mor_website_core::utils::robot_assist::read_session() {
+                        snap.live_buffer =
+                            Some(mor_website_core::utils::robot_assist::LiveBuffer {
+                                active_file,
+                                unsaved_content: current_content,
+                            });
+                        let _ = mor_website_core::utils::robot_assist::write_session(snap);
+                    }
                 } else {
                     let _ = std::fs::remove_file("/tmp/mor_website_live_state.json");
                 }

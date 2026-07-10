@@ -27,7 +27,12 @@ pub struct ThemeState {
     pub history: Signal<ThemeHistory>,
     pub last_imported_gtk: Signal<Option<mor_website_core::config::gtk_theme::ImportedGtkPreset>>,
     pub import_status: Signal<String>,
+    /// Robot Assist master switch (also mirrors policy.enabled).
     pub enable_ai_bridge: Signal<bool>,
+    /// Robot Assist tier: "off" | "theme" | "site" | "full".
+    pub robot_tier: Signal<String>,
+    /// Full tier: allow delete_file via MCP.
+    pub robot_allow_delete: Signal<bool>,
 }
 
 impl ThemeState {
@@ -83,7 +88,18 @@ impl ThemeState {
         let last_imported_gtk =
             use_signal(|| None::<mor_website_core::config::gtk_theme::ImportedGtkPreset>);
         let import_status = use_signal(String::new);
-        let enable_ai_bridge = use_signal(|| false);
+        // Seed Robot Assist from on-disk policy (opt-in; default off).
+        let policy = mor_website_core::utils::robot_assist::load_policy();
+        let enable_ai_bridge = use_signal(|| policy.enabled && policy.effective_tier()
+            != mor_website_core::utils::robot_assist::RobotTier::Off);
+        let robot_tier = use_signal(|| {
+            if policy.enabled {
+                policy.effective_tier().as_str().to_string()
+            } else {
+                "off".to_string()
+            }
+        });
+        let robot_allow_delete = use_signal(|| policy.allow_delete);
 
         ThemeState {
             signals,
@@ -100,6 +116,8 @@ impl ThemeState {
             last_imported_gtk,
             import_status,
             enable_ai_bridge,
+            robot_tier,
+            robot_allow_delete,
         }
     }
 

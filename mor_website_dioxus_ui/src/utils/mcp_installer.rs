@@ -36,7 +36,7 @@ fn official_manifest(version: &str) -> LocalMcpManifest {
         version: version.to_string(),
         description: "Connect Claude / IDE agents to MorWebsite core (presets, CSS compile, diagnostics). Opt-in only."
             .to_string(),
-        system_prompt: "You are the MorWebsite MCP engine. Prefer validated write_preset and the editor's compile pipeline; never invent Blogger-only APIs."
+        system_prompt: "You are the MorWebsite MCP engine. Call get_robot_policy and get_agent_handbook first. Respect Robot Assist tiers. Prefer workspace.toml + mor-theme.css; never invent Blogger XML APIs."
             .to_string(),
         entrypoint: String::new(),
         mcp_server_key: OFFICIAL_MCP_SERVER_KEY.to_string(),

@@ -85,6 +85,14 @@ pub async fn open_website_path(
         let mut site = site;
         site.current_page
             .set(project.default_page().map(str::to_string));
+        // Pin project path for Robot Assist agents.
+        {
+            let mut pol = mor_website_core::utils::robot_assist::load_policy();
+            if pol.enabled {
+                pol.project_path = Some(project.root.display().to_string());
+                let _ = mor_website_core::utils::robot_assist::save_policy(pol);
+            }
+        }
         site.project.set(project);
         site.server.set(server);
         site.bump_preview();

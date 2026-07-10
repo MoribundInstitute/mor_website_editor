@@ -189,6 +189,28 @@ fn StatusBar(config_toml_signal: Memo<String>, original_toml: Signal<String>) ->
                     "\u{25cf} unsaved"
                 }
             }
+            {
+                let tier = (theme.robot_tier)();
+                let robots_on = *theme.enable_ai_bridge.read() && tier != "off";
+                let robots_label = if robots_on {
+                    format!("robots: {tier}")
+                } else {
+                    "robots: off".into()
+                };
+                let robots_color = if robots_on { "#73c991" } else { "#888" };
+                let robots_title = if robots_on {
+                    "Robot Assist is on — external MCP agents may write to the open project (Preferences to change tier)"
+                } else {
+                    "Robot Assist is off — open Preferences to grant agents site-building power"
+                };
+                rsx! {
+                    span {
+                        title: "{robots_title}",
+                        style: "color: {robots_color}; cursor: default;",
+                        "{robots_label}"
+                    }
+                }
+            }
 
             // Center: transient workbench/dock messages; click to dismiss.
             div {

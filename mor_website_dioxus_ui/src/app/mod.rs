@@ -11,6 +11,7 @@ pub mod edit_context;
 pub mod hotswap;
 pub mod keyboard;
 mod restore_drop;
+pub mod robot_session;
 pub mod services;
 pub mod shell;
 pub mod shell_dialogs;
@@ -24,6 +25,7 @@ pub mod vfs;
 use crate::app::vfs::VfsDictionary;
 use keyboard::use_keyboard_shortcuts;
 use restore_drop::use_restore_drop_bridge;
+use robot_session::{use_project_hot_reload, use_robot_session_bridge};
 use shell::render_app_shell;
 use state::{LayoutState, RenderState, SiteData, ThemeState, WebsiteState};
 use theme_hot_reload::use_theme_config_hot_reload;
@@ -105,6 +107,8 @@ pub fn App() -> Element {
     use_keyboard_shortcuts(layout, shortcut_prefs);
     use_restore_drop_bridge(theme);
     use_theme_config_hot_reload(theme);
+    use_robot_session_bridge(theme, website);
+    use_project_hot_reload(theme, website);
 
     render_app_shell(theme, layout, render)
 }
