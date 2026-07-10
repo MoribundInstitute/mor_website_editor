@@ -15,17 +15,23 @@ samp {
   font-family: var(--font-mono);
 }
 
-a { 
-  color: var(--fg-base); 
-  text-decoration: none; 
-  border-bottom: 1px dotted var(--fg-dim); 
+a {
+  color: var(--fg-base);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--fg-dim);
   cursor: var(--theme-cursor-pointer, pointer);
+  transition:
+    color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-a:hover, 
-a:focus-visible { 
-  background: var(--fg-base); 
-  color: var(--bg-base); 
-  text-shadow: none; 
-  outline: none; 
+a:hover,
+a:focus-visible {
+  color: var(--accent, var(--fg-base));
+  background: color-mix(in srgb, var(--accent, var(--fg-base)) 12%, transparent);
+  border-bottom-color: var(--accent, var(--fg-base));
+  text-shadow: none;
+  outline: none;
 }

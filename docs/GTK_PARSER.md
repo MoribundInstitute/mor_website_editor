@@ -1,6 +1,6 @@
 # GTK Theme Parsing
 
-MorWebsite can import native Linux GTK desktop themes and convert them into Blogger-compatible presets.
+MorWebsite can import native Linux GTK desktop themes and convert them into website theme presets (`ThemeConfig` / `theme_presets/*.toml`).
 
 ## Import Flow
 

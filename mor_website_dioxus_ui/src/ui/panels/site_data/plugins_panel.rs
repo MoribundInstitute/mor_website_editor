@@ -16,7 +16,7 @@ pub fn PluginsPanel(mut custom_js: Signal<String>) -> Element {
                 class: "editor-note",
                 p {
                     class: "editor-note-body",
-                    "Drop a .js file here, or paste JavaScript below. Plain JavaScript will be wrapped in Blogger CDATA before export. Already-wrapped <script> blocks are preserved."
+                    "Drop a .js file here, or paste JavaScript below. Content is written into your site as a normal script (and into mor-theme.js when you save the theme)."
                 }
             }
 
@@ -70,7 +70,7 @@ pub fn PluginsPanel(mut custom_js: Signal<String>) -> Element {
                 span {
                     class: "editor-helper-text",
                     if has_js {
-                        "Custom JavaScript will be inserted before </body> in the exported Blogger XML."
+                        "Custom JavaScript will ship with the theme when you save to the website folder."
                     } else {
                         "No custom JavaScript will be injected."
                     }

@@ -45,14 +45,14 @@ body {{ display: flex; align-items: center; justify-content: center; font-family
 }
 
 const WELCOME_BODY: &str = r#"<h1>MorWebsite Editor</h1>
-<p class="tagline">Open a hand-rolled site. Change how it looks. Export one CSS file.</p>
+<p class="tagline">Open a hand-rolled site. Restyle with tokens. Edit page content. Export one CSS file.</p>
 <ol>
-<li><span class="step-num">1</span> <strong>Open a folder</strong> — <code>File → Open Website Folder…</code><br/>Try the repo’s <code>examples/mor_starter</code>, or run <code>mwt init --template starter</code>.</li>
-<li><span class="step-num">2</span> <strong>Pick a preset</strong> — Theme Palette / Presets dock. Colors and type update live in the preview.</li>
-<li><span class="step-num">3</span> <strong>Export</strong> — <code>File → Export mor-theme.css</code>. Link it from your pages.</li>
+<li><span class="step-num">1</span> <strong>Open a folder</strong> — <code>File → Open Website Folder…</code><br/>Your real PHP/HTML/CSS on disk is the structure (not a template pack).</li>
+<li><span class="step-num">2</span> <strong>Theme</strong> — Theme Palette / Presets. Colors and type update live.</li>
+<li><span class="step-num">3</span> <strong>Edit pages</strong> — ribbon <em>Edit</em>, double-click text, Insert blocks, Inspector (Alt+X).</li>
+<li><span class="step-num">4</span> <strong>Export</strong> — write <code>mor-theme.css</code> and link it from your pages.</li>
 </ol>
-<p><strong>Edit mode:</strong> on the preview ribbon choose <em>Edit</em>, then double-click text marked with <code>data-mor-edit</code> (site title, footer…).</p>
-<p class="hint">Designer mode keeps Theme, Pages, and Presets on the bar. Use <code>View → Advanced Mode</code> for CSS/JS docks. Contract: <code>docs/SITE_CONTRACT.md</code>.</p>"#;
+<p class="hint">Designer mode = site + theme. <code>View → Advanced Mode</code> adds CSS/JS docks and optional starter kits for scaffolding new pages. Contract: <code>docs/SITE_CONTRACT.md</code>.</p>"#;
 
 fn page_unavailable_body(page: &str) -> String {
     format!(

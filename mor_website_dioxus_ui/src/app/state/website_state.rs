@@ -1,6 +1,6 @@
 //! Website-project context: which folder is open, which page is previewed,
 //! and the local preview server serving it. The website-plug counterpart of
-//! `SiteData` from the Blogger lineage.
+//! Open website folder + preview server state (replaces the old offline-only site model).
 
 use dioxus::prelude::*;
 

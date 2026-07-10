@@ -5,8 +5,9 @@
 use crate::app::edit_context::{
     analyze_bound, analyze_dom_facts, link_component, DomSelectFacts, EditContext, SelectionInfo,
 };
+use crate::app::shell::WorkbenchEditState;
 use crate::app::state::{
-    CenterView, ContextMenuPayload, LayoutState, RenderState, WebsiteState,
+    CenterView, ContextMenuPayload, DockPosition, LayoutState, RenderState, WebsiteState,
 };
 use crate::ui::workspace::layout::PreviewViewport;
 use crate::ui::workspace::page_map::PageMapWorkspace;
@@ -128,27 +129,46 @@ pub fn WebsiteWorkspace(
     #[props(default)] on_toggle_dark_mode: Option<EventHandler<()>>,
 ) -> Element {
     let _ = show_preview;
-    let _ = active_preset;
     let mut layout = use_context::<LayoutState>();
     let render = use_context::<RenderState>();
+    let mut edit_state = use_context::<WorkbenchEditState>();
     let is_valid = render.diag.read().is_valid;
     let error_count = render.diag.read().errors.len();
     let mut active_icon_picker = layout.active_icon_picker;
-    // Start in Edit so the canvas is immediately Webflow-like (select + dbl-click).
+    // Default Edit: select + mutate; heavy X-Ray region paints are gone so the
+    // iframe shows the real site. View mode (ribbon) turns selection off.
     let is_xray_active = use_signal(|| true);
     let is_edit_active = use_signal(|| true);
+    let preset_label = active_preset()
+        .and_then(|id| {
+            mor_website_core::presets::all_presets()
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.name.to_string())
+        })
+        .unwrap_or_else(|| "custom".into());
     let mut active_xray_target = use_signal(|| None::<String>);
     let site = use_context::<WebsiteState>();
-    // Last X-Ray selection, analyzed (LO-style: selection → context → the
-    // owning dock panel gets focus, the canvas shows an inspect chip).
-    let mut active_selection = use_signal(|| None::<SelectionInfo>);
+    // One-shot: open Insert on first Edit session so blocks aren't hidden.
+    // Does not re-open if the user closes the dock later.
+    let mut insert_surfaced = use_signal(|| false);
+    use_effect(move || {
+        if is_edit_active() && !insert_surfaced() {
+            insert_surfaced.set(true);
+            if *layout.insert_dock_pos.peek() == DockPosition::Hidden {
+                layout.request_dock("insert", DockPosition::mor_panel_right);
+            }
+        }
+    });
+    // Shared with Inspector dock (layout.active_canvas_selection).
+    let active_selection = layout.active_canvas_selection;
 
     let mut select_bound = move |target: String| {
         let sel = analyze_bound(&target);
         if let Some(tab) = sel.palette_tab {
             layout.focus_palette_panel(tab);
         }
-        active_selection.set(Some(sel));
+        layout.set_canvas_selection(Some(sel));
         // Existing path: reveal the config section when a code editor is showing.
         active_xray_target.set(Some(target));
     };
@@ -166,10 +186,13 @@ pub fn WebsiteWorkspace(
                 &project.js_files,
             ));
         }
-        if let Some(tab) = sel.palette_tab {
-            layout.focus_palette_panel(tab);
+        // Token surfaces still jump to Theme Palette; instance/nav stay page-local.
+        if sel.context == EditContext::TokenSurface {
+            if let Some(tab) = sel.palette_tab {
+                layout.focus_palette_panel(tab);
+            }
         }
-        active_selection.set(Some(sel));
+        layout.set_canvas_selection(Some(sel));
     };
 
     let mut is_fullscreen = use_signal(|| false);
@@ -186,8 +209,10 @@ pub fn WebsiteWorkspace(
     };
 
     // Webflow-style unbound page text: unique-match replace in the open page file.
+    // Errors land on the status bar (WorkbenchEditState) — silent log-only was the bug.
     let apply_page_text = {
         let site = site;
+        let mut edit_state = edit_state;
         move |(old_t, new_t): (String, String)| {
             let project = site.project.peek().clone();
             let page = site
@@ -197,14 +222,25 @@ pub fn WebsiteWorkspace(
                 .or_else(|| project.default_page().map(str::to_string));
             let Some(page) = page else {
                 log::warn!("Page text edit: no page selected");
+                edit_state
+                    .workbench_status
+                    .set("Page edit: no page selected".into());
                 return;
             };
             match crate::app::services::workspace_service::handle_page_text_edit(
                 &project, &page, &old_t, &new_t,
             ) {
-                Ok(true) => site.bump_preview(),
+                Ok(true) => {
+                    site.bump_preview();
+                    edit_state
+                        .workbench_status
+                        .set(format!("Saved edit → {page}"));
+                }
                 Ok(false) => {}
-                Err(e) => log::warn!("Page text edit: {e}"),
+                Err(e) => {
+                    log::warn!("Page text edit: {e}");
+                    edit_state.workbench_status.set(e);
+                }
             }
         }
     };
@@ -367,6 +403,7 @@ pub fn WebsiteWorkspace(
                                 edit_active: Some(is_edit_active),
                                 active_selection: Some(active_selection),
                                 preview_html: preview_html(),
+                                preset_label: Some(preset_label.clone()),
                                 on_navigate: move |href: String| { if let Some(handler) = on_navigate.as_ref() { handler.call(href); } },
                                 on_select: move |target: String| select_bound(target),
                                 on_select_dom: move |facts: crate::app::edit_context::DomSelectFacts| select_unbound(facts),
@@ -378,9 +415,10 @@ pub fn WebsiteWorkspace(
                                     move |(target, val): (String, String)| { mutator(target, val, config_toml()); }
                                 },
                                 on_page_text_edit: {
-                                    let mutator = apply_page_text.clone();
+                                    let mut mutator = apply_page_text.clone();
                                     move |pair: (String, String)| { mutator(pair); }
                                 },
+                                on_status: move |msg: String| { edit_state.workbench_status.set(msg); },
                                 on_move_widget: {
                                     let mutator = apply_widget_move.clone();
                                     move |(id, dest): (String, String)| { mutator(id, dest, config_toml()); }
@@ -409,7 +447,7 @@ pub fn WebsiteWorkspace(
                 CenterView::PageMap => rsx! {
                     PageMapWorkspace {}
                 },
-                // Preview, plus the retired Blogger workbench views (still enum
+                // Preview, plus the retired Advanced workbench views (still enum
                 // variants) all land on the live preview.
                 _ => rsx! {
                     PreviewCanvas {
@@ -419,6 +457,7 @@ pub fn WebsiteWorkspace(
                         edit_active: Some(is_edit_active),
                         active_selection: Some(active_selection),
                         preview_html: preview_html(),
+                        preset_label: Some(preset_label.clone()),
                         on_navigate: move |href: String| { if let Some(handler) = on_navigate.as_ref() { handler.call(href); } },
                         on_select: move |target: String| select_bound(target),
                         on_select_dom: move |facts: DomSelectFacts| select_unbound(facts),
@@ -430,9 +469,10 @@ pub fn WebsiteWorkspace(
                             move |(target, val): (String, String)| { mutator(target, val, config_toml()); }
                         },
                         on_page_text_edit: {
-                            let mutator = apply_page_text.clone();
+                            let mut mutator = apply_page_text.clone();
                             move |pair: (String, String)| { mutator(pair); }
                         },
+                        on_status: move |msg: String| { edit_state.workbench_status.set(msg); },
                         on_move_widget: {
                             let mutator = apply_widget_move.clone();
                             move |(id, dest): (String, String)| { mutator(id, dest, config_toml()); }
@@ -719,12 +759,13 @@ fn IconPickerModal(
     }
 }
 
-/// Export surface for the Website plug: a numbered walkthrough — write the
-/// theme files, link them from the pages, place template modules, bundle.
+/// Export surface: site-first walkthrough — write CSS, link pages, bundle.
+/// Optional starter-kit HTML is Advanced-only (scaffold a *new* page, not layout).
 #[component]
 fn ExportResultView(is_valid: bool, error_count: usize) -> Element {
     let render = use_context::<RenderState>();
     let site = use_context::<WebsiteState>();
+    let layout = use_context::<LayoutState>();
     let mut step1_status = use_signal(String::new);
     let mut step2_status = use_signal(String::new);
     let mut step3_status = use_signal(String::new);
@@ -735,6 +776,7 @@ fn ExportResultView(is_valid: bool, error_count: usize) -> Element {
     let config = (render.current_config)();
     let project = (site.project)();
     let project_open = project.is_open();
+    let show_starter_kits = layout.advanced_tools_visible();
 
     let has_js = !mor_website_core::website::html_modules::generate_theme_js(&config).is_empty();
     let selected = mor_website_core::website::html_modules::selected_modules(&config);
@@ -759,6 +801,13 @@ fn ExportResultView(is_valid: bool, error_count: usize) -> Element {
         div {
             style: "display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 16px; padding: 4px; overflow-y: auto;",
 
+            p {
+                style: "margin: 0; font-size: 0.85rem; color: var(--fg-muted); line-height: 1.5;",
+                "Your site’s structure stays in PHP/HTML on disk. "
+                strong { "File → Save Theme to Site" }
+                " writes workspace.toml + mor-theme.css (and optional JS) from the Theme Palette."
+            }
+
             if !is_valid {
                 div { class: "export-error-banner",
                     span { style: "flex-shrink: 0;", "⚠" }
@@ -768,10 +817,10 @@ fn ExportResultView(is_valid: bool, error_count: usize) -> Element {
 
             // ── Step 1 · Write theme files ──────────────────────────────
             div { class: "editor-panel", style: step_card,
-                h3 { style: step_title, "1 · Write theme files into your site" }
+                h3 { style: step_title, "1 · Write mor-theme.css into your site" }
                 p { style: step_hint,
-                    "Compiles the live config into a standalone stylesheet in the project root."
-                    if has_js { " Selected modules ship behavior, so mor-theme.js is written alongside." }
+                    "Compiles the live token config into a standalone stylesheet in the project root."
+                    if has_js { " Optional kit JS ships as mor-theme.js when a starter kit needs it." }
                 }
                 button {
                     class: if project_open { "editor-button editor-button-good" } else { "editor-button editor-button-disabled" },
@@ -844,71 +893,72 @@ fn ExportResultView(is_valid: bool, error_count: usize) -> Element {
                 }
             }
 
-            // ── Step 3 · Template modules (optional) ────────────────────
-            div { class: "editor-panel", style: step_card,
-                h3 { style: step_title, "3 · Template modules (optional)" }
-                p { style: step_hint,
-                    "Paste the selected modules' HTML into your pages — their styling already rides mor-theme.css — or write a ready-made starter page."
-                }
-                if selected.is_empty() {
-                    p { style: step_hint, "No modules selected — pick some in the Template Modules panel." }
-                }
-                div { style: "display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;",
-                    for m in selected {
-                        div { style: "display: flex; align-items: center; gap: 10px;",
-                            span { style: "flex: 1; font-size: 0.85rem; color: var(--fg-base);", "{m.name}" }
-                            button {
-                                class: "editor-mini-button",
-                                onclick: move |_| {
-                                    crate::utils::clipboard::copy_to_clipboard(m.html.to_string());
-                                    step3_status.set(format!("✓ {} HTML copied.", m.name));
-                                },
-                                "Copy HTML"
+            // ── Optional starter kits (Advanced only) ───────────────────
+            if show_starter_kits {
+                div { class: "editor-panel", style: step_card,
+                    h3 { style: step_title, "Optional · Starter kits (new pages only)" }
+                    p { style: step_hint,
+                        "Scaffold HTML for a greenfield page — does not replace your existing includes. "
+                        "Pick kits under Theme Palette → Starter kits. Structure for live sites stays in your PHP/HTML files."
+                    }
+                    if selected.is_empty() {
+                        p { style: step_hint, "No kits selected — open Theme Palette → Starter kits (Advanced mode)." }
+                    }
+                    div { style: "display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;",
+                        for m in selected {
+                            div { style: "display: flex; align-items: center; gap: 10px;",
+                                span { style: "flex: 1; font-size: 0.85rem; color: var(--fg-base);", "{m.name}" }
+                                button {
+                                    class: "editor-mini-button",
+                                    onclick: move |_| {
+                                        crate::utils::clipboard::copy_to_clipboard(m.html.to_string());
+                                        step3_status.set(format!("✓ {} HTML copied.", m.name));
+                                    },
+                                    "Copy HTML"
+                                }
                             }
                         }
                     }
-                }
-                button {
-                    class: if project_open { "editor-button" } else { "editor-button editor-button-disabled" },
-                    title: if project_open { "Compose the selected modules into mor-starter.html (always overwritten)" } else { no_project_hint },
-                    onclick: move |_| {
-                        let project = (site.project)();
-                        if !project.is_open() {
-                            step3_status.set(format!("✗ {no_project_hint}."));
-                            return;
-                        }
-                        let config = (render.current_config)();
-                        let title = if config.site.site_title.trim().is_empty() {
-                            "My Site".to_string()
-                        } else {
-                            config.site.site_title.clone()
-                        };
-                        match mor_website_core::website::export_starter_page(&project, &config, &title) {
-                            Ok(path) => {
-                                step3_status.set(format!("✓ wrote {}", path.display()));
-                                // Rescan so the page picker knows the new page,
-                                // then show it in the preview immediately.
-                                if let Ok(rescanned) = mor_website_core::website::scan_project(&project.root) {
-                                    let mut project_signal = site.project;
-                                    project_signal.set(rescanned);
-                                }
-                                let mut current_page = site.current_page;
-                                current_page.set(Some(mor_website_core::website::STARTER_PAGE_FILENAME.to_string()));
-                                site.bump_preview();
+                    button {
+                        class: if project_open { "editor-button" } else { "editor-button editor-button-disabled" },
+                        title: if project_open { "Compose selected kits into mor-starter.html (always overwritten)" } else { no_project_hint },
+                        onclick: move |_| {
+                            let project = (site.project)();
+                            if !project.is_open() {
+                                step3_status.set(format!("✗ {no_project_hint}."));
+                                return;
                             }
-                            Err(e) => step3_status.set(format!("✗ {e}")),
-                        }
-                    },
-                    "Write starter page (mor-starter.html)"
-                }
-                if !step3_status().is_empty() {
-                    p { style: step_status, "{step3_status}" }
+                            let config = (render.current_config)();
+                            let title = if config.site.site_title.trim().is_empty() {
+                                "My Site".to_string()
+                            } else {
+                                config.site.site_title.clone()
+                            };
+                            match mor_website_core::website::export_starter_page(&project, &config, &title) {
+                                Ok(path) => {
+                                    step3_status.set(format!("✓ wrote {}", path.display()));
+                                    if let Ok(rescanned) = mor_website_core::website::scan_project(&project.root) {
+                                        let mut project_signal = site.project;
+                                        project_signal.set(rescanned);
+                                    }
+                                    let mut current_page = site.current_page;
+                                    current_page.set(Some(mor_website_core::website::STARTER_PAGE_FILENAME.to_string()));
+                                    site.bump_preview();
+                                }
+                                Err(e) => step3_status.set(format!("✗ {e}")),
+                            }
+                        },
+                        "Write starter page (mor-starter.html)"
+                    }
+                    if !step3_status().is_empty() {
+                        p { style: step_status, "{step3_status}" }
+                    }
                 }
             }
 
-            // ── Step 4 · Bundle ─────────────────────────────────────────
+            // ── Step 3 · Bundle ─────────────────────────────────────────
             div { class: "editor-panel", style: step_card,
-                h3 { style: step_title, "4 · Bundle" }
+                h3 { style: step_title, "3 · Bundle" }
                 p { style: step_hint, "Ship the whole site as a zip (with a fresh mor-theme.css), or grab the full CSS for elsewhere." }
                 div { class: "export-action-group", style: "display: flex; flex-wrap: wrap; gap: 10px;",
                     button {

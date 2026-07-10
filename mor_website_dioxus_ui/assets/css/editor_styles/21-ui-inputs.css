@@ -37,7 +37,8 @@
 
 .editor-field,
 .editor-select,
-.editor-textarea {
+.editor-textarea,
+.editor-input {
   width: 100%;
   padding: 8px 12px;
   background: color-mix(in srgb, var(--editor-text) 15%, transparent);
@@ -46,12 +47,24 @@
   border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
+}
+
+.editor-field:hover,
+.editor-select:hover,
+.editor-textarea:hover,
+.editor-input:hover {
+  border-color: var(--editor-hover-border);
+  background: color-mix(in srgb, var(--editor-text) 12%, transparent);
 }
 
 .editor-field:focus,
 .editor-select:focus,
-.editor-textarea:focus {
+.editor-textarea:focus,
+.editor-input:focus {
   border-color: var(--editor-accent);
   box-shadow: 0 0 0 3px var(--editor-focus);
   outline: none;
@@ -72,18 +85,45 @@
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
 }
 
-.editor-button:hover {
-  border-color: var(--editor-muted);
-  background: color-mix(in srgb, var(--editor-text) 15%, transparent);
+.editor-button:hover:not(:disabled) {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
+  box-shadow: var(--editor-hover-glow);
+}
+
+.editor-button:active:not(:disabled) {
+  transform: translateY(0.5px);
+  box-shadow: none;
 }
 
 .editor-button-active {
   border-color: var(--editor-accent);
   color: var(--editor-accent);
-  background: color-mix(in srgb, var(--editor-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--editor-accent) 12%, transparent);
+}
+
+.editor-button-active:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--editor-accent) 20%, transparent);
+  border-color: var(--editor-accent);
+}
+
+.editor-button-good {
+  border-color: color-mix(in srgb, var(--editor-good, #3fb950) 45%, var(--editor-border));
+  color: var(--editor-good, #3fb950);
+}
+
+.editor-button-good:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--editor-good, #3fb950) 16%, transparent);
+  border-color: var(--editor-good, #3fb950);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--editor-good, #3fb950) 25%, transparent);
 }
 
 .editor-button-danger {
@@ -91,9 +131,10 @@
   color: var(--editor-danger);
 }
 
-.editor-button-danger:hover {
+.editor-button-danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--editor-danger) 15%, transparent);
   border-color: var(--editor-danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--editor-danger) 30%, transparent);
 }
 
 .editor-note {
@@ -137,6 +178,7 @@ input[type="checkbox"] {
 
 input[type="checkbox"]:hover {
   border-color: var(--editor-accent);
+  box-shadow: 0 0 0 3px var(--editor-focus);
 }
 
 input[type="checkbox"]:checked {

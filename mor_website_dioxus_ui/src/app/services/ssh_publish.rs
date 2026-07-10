@@ -702,6 +702,71 @@ fn run_mor_publish_cli(project: &Path, dry_run: bool) -> Result<String, String> 
     }
 }
 
+/// Open the user's system terminal (not an in-app shell), optionally running
+/// an `ssh user@host -p port` command for Hostinger-style access.
+///
+/// Tries common Linux terminals; never embeds a PTY in the editor.
+pub fn open_system_terminal(ssh_cmd: Option<&str>) -> Result<(), String> {
+    let ssh = ssh_cmd.map(str::trim).filter(|s| !s.is_empty());
+    // Prefer desktop defaults, then fall back through common emulators.
+    let candidates: &[(&str, &[&str])] = &[
+        ("x-terminal-emulator", &["-e"]),
+        ("gnome-terminal", &["--"]),
+        ("kgx", &["-e"]),
+        ("konsole", &["-e"]),
+        ("xfce4-terminal", &["-e"]),
+        ("mate-terminal", &["-e"]),
+        ("xterm", &["-e"]),
+    ];
+    for (bin, prefix) in candidates {
+        if which_bin(bin).is_none() {
+            continue;
+        }
+        let mut cmd = Command::new(bin);
+        if let Some(ssh_line) = ssh {
+            for p in *prefix {
+                cmd.arg(p);
+            }
+            // Run via sh so a single string with spaces works for all terminals.
+            cmd.arg("sh").arg("-c").arg(format!("{ssh_line}; exec bash"));
+        }
+        match cmd.spawn() {
+            Ok(_) => return Ok(()),
+            Err(e) => log::warn!("Could not spawn {bin}: {e}"),
+        }
+    }
+    Err(
+        "No system terminal found (tried x-terminal-emulator, gnome-terminal, konsole, xterm…)."
+            .into(),
+    )
+}
+
+/// Build `ssh -p PORT -i KEY user@host` for the Open Terminal button.
+pub fn interactive_ssh_command(cfg: &PublishConfig) -> Result<String, String> {
+    cfg.validate()?;
+    let mut parts = vec!["ssh".to_string()];
+    parts.push("-p".into());
+    parts.push(cfg.port.to_string());
+    if let Some(key) = validate_identity_path(cfg.identity_file.trim())? {
+        parts.push("-i".into());
+        parts.push(key.display().to_string());
+    }
+    parts.push(format!("{}@{}", cfg.user.trim(), cfg.host.trim()));
+    Ok(parts.join(" "))
+}
+
+fn which_bin(name: &str) -> Option<PathBuf> {
+    if let Ok(p) = std::env::var("PATH") {
+        for dir in p.split(':') {
+            let cand = Path::new(dir).join(name);
+            if cand.is_file() {
+                return Some(cand);
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

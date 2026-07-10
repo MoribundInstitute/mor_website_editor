@@ -25,12 +25,16 @@
   cursor: default;
   color: var(--editor-text);
   border-radius: var(--radius-sm, 6px);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
 }
 
 .mor-menu-bar > .mor-menu-item:hover {
-  background-color: var(--editor-panel-raised);
+  background-color: var(--editor-hover-bg-strong);
   color: var(--editor-text);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--editor-accent) 70%, transparent);
 }
 
 /* The Dropdown Container */
@@ -68,7 +72,10 @@
   font-family: var(--font-sans), sans-serif;
   cursor: pointer;
   border-radius: var(--radius-sm, 6px);
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition:
+    background-color var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
   box-sizing: border-box;
   text-align: left;
 }
@@ -76,6 +83,7 @@
 .mor-menu-dropdown .mor-menu-item:hover:not(.disabled) {
   background-color: var(--editor-accent);
   color: #ffffff;
+  transform: translateX(1px);
 }
 
 .mor-menu-dropdown .mor-menu-item.disabled {

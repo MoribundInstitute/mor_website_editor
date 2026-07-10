@@ -87,7 +87,7 @@ fn StatusBar(config_toml_signal: Memo<String>, original_toml: Signal<String>) ->
         CenterView::CodeEditor => {
             let page = (website.current_page)()
                 .or_else(|| website.project.read().default_page().map(str::to_string));
-            if (layout.code_show_xml)() {
+            if (layout.code_show_compiled)() {
                 "compiled CSS".to_string()
             } else if let Some(p) = page {
                 format!("code · {p}")
@@ -156,7 +156,7 @@ fn StatusBar(config_toml_signal: Memo<String>, original_toml: Signal<String>) ->
             }
             if dirty {
                 span {
-                    title: "Site config has unsaved changes (File \u{2192} Save Site Config)",
+                    title: "Theme has unsaved changes (File \u{2192} Save Theme to Site)",
                     style: "color: #d29922;",
                     "\u{25cf} unsaved"
                 }
@@ -247,6 +247,7 @@ pub fn render_app_shell(
     let show_shortcuts = use_signal(|| false);
     let show_docs = use_signal(|| false);
     let show_ssh_publish = use_signal(|| false);
+    let show_new_website = use_signal(|| false);
 
     let prefs = use_signal(|| EditorPrefs::load());
 
@@ -313,8 +314,8 @@ pub fn render_app_shell(
     let show_window_buttons = active_ui_mode == "frameless";
     let show_custom_title = active_ui_mode != "native";
 
-    let original_toml =
-        use_signal(|| toml::to_string_pretty(&current_config()).unwrap_or_default());
+    // Provided from app root so Open Folder / CLI open can seed from workspace.toml.
+    let original_toml = use_context::<Signal<String>>();
     let config_toml_signal = use_memo(move || {
         let updated = current_config();
         mor_website_core::config::update_toml_preserve_comments(&original_toml(), &updated)
@@ -375,6 +376,7 @@ pub fn render_app_shell(
                 show_shortcuts,
                 show_docs,
                 show_ssh_publish,
+                show_new_website,
                 ui_mode_pref,
                 ui_theme_pref,
                 active_ui_mode: active_ui_mode.clone(),
@@ -388,21 +390,36 @@ pub fn render_app_shell(
                     show_shortcuts,
                     show_docs,
                     show_ssh_publish,
+                    show_new_website,
 
-                    on_new_workspace: move |_| {
-                        shell_file_actions::new_workspace(theme, original_toml);
-                    },
                     on_open_folder: move |_| {
-                        shell_file_actions::open_website_folder(website, vfs);
+                        shell_file_actions::open_website_folder(
+                            website,
+                            vfs,
+                            theme,
+                            original_toml,
+                        );
                     },
-                    on_load_theme: move |_| {
-                        shell_file_actions::load_theme(theme, original_toml);
+                    on_save_to_site: move |_| {
+                        let msg = shell_file_actions::save_theme_to_site(
+                            website,
+                            &current_config(),
+                            &config_toml_signal(),
+                            original_toml,
+                        );
+                        let mut status = workbench_status;
+                        status.set(msg);
                     },
-                    on_save_theme: move |_| {
-                        shell_file_actions::save_theme(&config_toml_signal(), original_toml);
+                    on_load_theme_config: move |_| {
+                        shell_file_actions::load_theme_config(theme, original_toml);
                     },
-                    on_export_css: move |_| {
-                        shell_file_actions::export_theme_css(website, &current_config());
+                    on_save_theme_config_as: move |_| {
+                        shell_file_actions::save_theme_config_as(
+                            &config_toml_signal(),
+                            original_toml,
+                        );
+                        let mut status = workbench_status;
+                        status.set("Theme config saved to chosen path.".into());
                     },
                     on_export_zip: move |_| {
                         shell_file_actions::export_site_zip(website, current_config());

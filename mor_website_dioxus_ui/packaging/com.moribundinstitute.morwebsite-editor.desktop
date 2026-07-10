@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=MorWebsite Editor
+Comment=Visual design-token theme editor for local websites (not Blogger)
+# Exec must point at the installed/launched binary (dev: target/debug/mor_website_dioxus_ui).
+Exec=/home/deo-user/ai_workspace/website-tools/mor_website_editor/target/debug/mor_website_dioxus_ui
+# Icon name resolved from the icon theme (e.g. ~/.local/share/icons/hicolor/.../apps/).
+Icon=com.moribundinstitute.morwebsite-editor
+Terminal=false
+Categories=Development;WebDevelopment;
+# MUST equal the Wayland app_id set via glib::set_prgname in main.rs,
+# otherwise GNOME/KDE won't map the running window to this icon.
+StartupWMClass=com.moribundinstitute.morwebsite-editor

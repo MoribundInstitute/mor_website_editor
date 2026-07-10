@@ -43,7 +43,7 @@ pub fn SvgFramesPanel(
 
             // Hosted URL Input Section
             div { class: "editor-field-group",
-                label { class: "editor-field-label", "Image URL (e.g., hosted on Blogger/Imgur)" }
+                label { class: "editor-field-label", "Image URL (e.g. your CDN, Imgur, or site /images/…)" }
                 input {
                     class: "editor-input",
                     r#type: "text",

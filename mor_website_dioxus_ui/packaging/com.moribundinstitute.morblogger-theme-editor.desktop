@@ -1,14 +1,15 @@
+# DEPRECATED: renamed from Blogger branding to website branding.
+# Use: com.moribundinstitute.morwebsite-theme-editor.desktop
+# (or com.moribundinstitute.morwebsite-editor.desktop — unified StartupWMClass/prgname).
+# This file is kept only as a pointer so old packaging docs do not 404.
+
 [Desktop Entry]
 Type=Application
 Name=MorWebsite Theme Editor
-Comment=A visual Blogger theme editor
-# Exec must point at the installed/launched binary (the dev binary is
-# target/debug/mor_website_dioxus_ui). Use an absolute path for dev runs.
-Exec=morwebsite-theme-editor
-# Icon name resolved from the icon theme (e.g. ~/.local/share/icons/.../apps/).
+Comment=DEPRECATED entry — use com.moribundinstitute.morwebsite-theme-editor.desktop. Visual design-token theme editor for local websites (not Blogger)
+Exec=/home/deo-user/ai_workspace/website-tools/mor_website_editor/target/debug/mor_website_dioxus_ui
 Icon=com.moribundinstitute.morwebsite-theme-editor
 Terminal=false
-Categories=Development;
-# MUST equal the Wayland app_id set via WindowBuilder::with_name in main.rs,
-# otherwise GNOME/KDE won't map the running window to this icon.
-StartupWMClass=com.moribundinstitute.morwebsite-theme-editor
+Categories=Development;WebDevelopment;
+StartupWMClass=com.moribundinstitute.morwebsite-editor
+NoDisplay=true

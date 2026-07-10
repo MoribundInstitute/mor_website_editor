@@ -4,7 +4,7 @@ use mor_website_core::utils::fs_bridge::{self, WidgetBlueprint};
 use crate::app::shell::WorkbenchEditState;
 use crate::app::state::{CenterView, DockPosition, LayoutState};
 use crate::ui::components::dock_chrome::DockChrome;
-use crate::ui::components::icons::gadget_icon;
+use crate::ui::components::icons::widget_icon;
 use crate::ui::workspace::widget_layout;
 
 // Seed XML for a freshly created blueprint (a blank HTML gadget).
@@ -158,7 +158,7 @@ pub fn WidgetsDock() -> Element {
                                         div {
                                             key: "{row_key}",
                                             style: "display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--editor-border-soft); background: var(--bg-elevated);",
-                                            span { style: "color: var(--editor-accent); display: flex; align-items: center; flex-shrink: 0;", { gadget_icon(&w_type) } }
+                                            span { style: "color: var(--editor-accent); display: flex; align-items: center; flex-shrink: 0;", { widget_icon(&w_type) } }
                                             span {
                                                 style: "flex: 1; min-width: 0; font-size: 0.78rem; line-height: 1.2; word-break: break-word; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;",
                                                 title: "{bp.group}/{bp.name}",
@@ -166,7 +166,7 @@ pub fn WidgetsDock() -> Element {
                                             }
                                             button {
                                                 class: "editor-mini-button editor-mini-button-active",
-                                                title: "Add this gadget to the current module/slot",
+                                                title: "Add this block to the current module/slot",
                                                 onclick: move |_| {
                                                     edit_state.add_widget_request.set(Some(bp_add.clone()));
                                                     layout.center_view.set(CenterView::ModuleWorkbench);

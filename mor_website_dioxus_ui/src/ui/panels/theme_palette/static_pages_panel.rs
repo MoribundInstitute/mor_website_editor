@@ -201,7 +201,7 @@ pub fn StaticPagesPanel(
             }
 
             div { class: "editor-help-text",
-                "Select a page template to generate its HTML. Paste this directly into Blogger's Pages editor (HTML View) to automatically match your active theme colors."
+                "Select a page template to generate HTML that uses your active theme tokens. Save the result as a page in your website folder (or copy into an existing PHP/HTML file)."
             }
 
             // Tab navigation

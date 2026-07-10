@@ -8,7 +8,7 @@ Modular PHP + optional web component, wired for MorWebsite Editor.
 2. **File → Open Website Folder…** and pick this directory.
 3. Left dock → **Presets** (or Theme Palette) → load a look.
 4. Preview mode → **Edit** → double-click the site title.
-5. **File → Export mor-theme.css**.
+5. **File → Save Theme to Site** (writes `workspace.toml` + `mor-theme.css`).
 
 ## Layout
 

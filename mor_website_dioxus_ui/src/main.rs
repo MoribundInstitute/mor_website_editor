@@ -29,9 +29,9 @@ fn main() {
     // window-level app_id setter, but GTK derives the Wayland app_id from the glib
     // program name, so set it here (before launch/gtk_init). Must equal the
     // .desktop basename and its StartupWMClass (see
-    // packaging/com.moribundinstitute.morwebsite-theme-editor.desktop).
+    // packaging/com.moribundinstitute.morwebsite-editor.desktop).
     #[cfg(target_os = "linux")]
-    glib::set_prgname(Some("com.moribundinstitute.morwebsite-theme-editor"));
+    glib::set_prgname(Some("com.moribundinstitute.morwebsite-editor"));
     let mut mode = "frameless".to_string();
 
     // 1. Read persistent preferences from disk

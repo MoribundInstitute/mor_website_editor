@@ -1,4 +1,4 @@
-/* CSS custom properties (design tokens) for the Theme Architect editor UI.
+/* CSS custom properties (design tokens) for the MorWebsite Editor UI.
    Token bridge: maps legacy --editor-* aliases to live --mor-* theme variables. */
 
 :root {
@@ -22,6 +22,14 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  /* Shared hover language — used by buttons, docks, menus, cards. */
+  --editor-bg-hover: color-mix(in srgb, var(--mor-accent) 12%, var(--mor-panel));
+  --editor-hover-bg: color-mix(in srgb, var(--mor-text) 8%, transparent);
+  --editor-hover-bg-strong: color-mix(in srgb, var(--mor-accent) 16%, transparent);
+  --editor-hover-border: color-mix(in srgb, var(--mor-accent) 55%, var(--mor-border));
+  --editor-hover-glow: 0 0 0 1px color-mix(in srgb, var(--mor-accent) 28%, transparent),
+    0 2px 10px color-mix(in srgb, var(--mor-accent) 12%, transparent);
+  --editor-hover-ease: 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Global box-sizing reset */

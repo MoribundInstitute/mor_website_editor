@@ -1,5 +1,5 @@
 //! Dedicated Widget Workbench.
-//! A focused editing stage for ONE Blogger widget blueprint (its own preview and
+//! A focused editing stage for ONE widget blueprint (its own preview and
 //! Save, no module chrome). Symmetric with the Module Workbench, but the unit of
 //! work is a single `workspace/widgets/<group>/<name>.xml` blueprint, opened from
 //! the Widgets dock. Reuses the same blueprint CRUD, XML parsing, code editor and
@@ -89,7 +89,7 @@ body {{ min-height: 240px; }}
     <h3 class="mor-bell-heading">Newest Post</h3>
     <a class="mor-bell-post" href="#">
       <span class="mor-bell-title">Sample: The Newest Post Title</span>
-      <span class="mor-bell-snippet">A preview of the most recent post summary. On the live blog, Blogger fills this with your newest entry.</span>
+      <span class="mor-bell-snippet">A preview of the most recent post summary. On a live site this pulls from your feed or latest page.</span>
       <span class="mor-bell-thumb" style="display:block;height:120px;margin-top:10px;border-radius:8px;background:linear-gradient(135deg,var(--bg-base,#222),var(--accent,#555));opacity:.55;"></span>
     </a>
   </div>
@@ -125,7 +125,7 @@ fn widget_preview_html(
         preview::preview_widget_html(config, &w_type, &title, &[])
     } else if dynamic {
         format!(
-            r#"<div style="margin:0 0 16px;padding:8px 12px;border-radius:6px;background:#3a2f12;color:#eab308;font:0.8rem/1.4 monospace;">⚠ Uses Blogger templating (b:loop / data:). Dynamic parts render only on the live blog.</div>{body}"#
+            r#"<div style="margin:0 0 16px;padding:8px 12px;border-radius:6px;background:#3a2f12;color:#eab308;font:0.8rem/1.4 monospace;">⚠ Uses platform templating (b:loop / data:). Dynamic parts only render on a host that understands those tags — prefer static HTML/PHP for regular websites.</div>{body}"#
         )
     } else {
         body
@@ -232,7 +232,7 @@ pub fn WidgetWorkbench(config_toml: ReadSignal<String>) -> Element {
                             }
                             span {
                                 style: "font-size: 0.7rem; font-weight: 600; color: var(--editor-accent); background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--editor-border-soft);",
-                                "Blogger Widget · Live"
+                                "Widget · Live"
                             }
                         }
                         div {
@@ -245,7 +245,7 @@ pub fn WidgetWorkbench(config_toml: ReadSignal<String>) -> Element {
                             }
                             button {
                                 class: if !layout_view() { "editor-mini-button editor-mini-button-active" } else { "editor-mini-button" },
-                                title: "Raw Blogger XML",
+                                title: "Raw widget markup",
                                 onclick: move |_| layout_view.set(false),
                                 "Code"
                             }

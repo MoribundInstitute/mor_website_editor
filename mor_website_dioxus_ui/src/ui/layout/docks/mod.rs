@@ -14,6 +14,8 @@ pub mod template_editor_dock;
 pub mod code_nav_dock;
 pub mod static_pages_dock;
 pub mod widgets_dock;
+pub mod insert_dock;
+pub mod inspector_dock;
 
 pub use asset_editor_dock::{
     resolve_theme_dependencies, resolve_workbench_dependencies, AssetEditorDock,
@@ -28,3 +30,5 @@ pub use css_builder_dock::CssBuilderDock;
 pub use js_builder_dock::JsBuilderDock;
 pub use code_nav_dock::CodeNavDock;
 pub use static_pages_dock::StaticPagesDock;
+pub use insert_dock::InsertDock;
+pub use inspector_dock::InspectorDock;

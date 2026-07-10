@@ -4,7 +4,7 @@ use mor_website_core::utils::svg_icons::{is_svg, svg_to_data_uri};
 use std::collections::HashMap;
 
 /// The Website plug's export artifact: the finished standalone stylesheet.
-/// (Replaces build_fresh_export_xml from the Blogger lineage.)
+/// Website-native CSS/theme export helpers (replaces legacy XML export).
 pub fn build_fresh_export_css(config: &ThemeConfig) -> String {
     mor_website_core::website::generate_theme_css(config)
 }
@@ -271,32 +271,46 @@ pub fn handle_page_text_edit(
     if !project.is_open() {
         return Err("No website folder open".into());
     }
-    let old_text = old_text.trim();
-    let new_text = new_text.trim();
+    let rich = old_text.contains('<') || new_text.contains('<');
+    let (old_text, new_text) = if rich {
+        (old_text.to_string(), new_text.to_string())
+    } else {
+        (old_text.trim().to_string(), new_text.trim().to_string())
+    };
     if old_text.is_empty() || old_text == new_text {
         return Ok(false);
     }
-    // Refuse huge blobs (safety) and strings that are pure whitespace.
-    if old_text.len() > 4000 || new_text.len() > 8000 {
+    let max_old = if rich { 24_000 } else { 4_000 };
+    let max_new = if rich { 32_000 } else { 8_000 };
+    if old_text.len() > max_old || new_text.len() > max_new {
         return Err("Edit too large to auto-save safely".into());
     }
     let path = project.root.join(page_rel);
     let src = std::fs::read_to_string(&path).map_err(|e| format!("Read {}: {e}", path.display()))?;
-    let count = src.matches(old_text).count();
-    if count == 0 {
-        return Err(
-            "Could not find that text in the page source (it may be PHP-generated)".into(),
-        );
-    }
-    if count > 1 {
+
+    // Ambiguous exact multi-match: refuse.
+    let exact = src.matches(&old_text).count();
+    if exact > 1 {
         return Err(format!(
-            "That text appears {count} times in the file — edit it in the Code view to be safe"
+            "That text appears {exact} times in the file — edit it in the Code view to be safe"
         ));
     }
-    let updated = src.replacen(old_text, new_text, 1);
-    std::fs::write(&path, updated).map_err(|e| format!("Write {}: {e}", path.display()))?;
-    log::info!("Page text edit saved to {}", path.display());
-    Ok(true)
+
+    match mor_website_core::website::page_edit::apply_page_edit(&src, &old_text, &new_text) {
+        Some(res) => {
+            std::fs::write(&path, &res.updated)
+                .map_err(|e| format!("Write {}: {e}", path.display()))?;
+            log::info!(
+                "Page edit saved ({}) → {}",
+                res.method,
+                path.display()
+            );
+            Ok(true)
+        }
+        None => Err(
+            "Could not find that text/HTML in the page source (PHP-generated or ambiguous). Open Code view to edit safely.".into(),
+        ),
+    }
 }
 
 pub fn handle_widget_move(id: &str, dest: &str, cfg: &str) -> Option<ThemeConfig> {

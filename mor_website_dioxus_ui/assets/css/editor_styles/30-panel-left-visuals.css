@@ -36,13 +36,18 @@
   text-align: left;
   font-family: inherit;
   color: var(--editor-text);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color var(--editor-hover-ease),
+    transform var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    background var(--editor-hover-ease);
 }
 
 .editor-presets__card:hover {
-  border-color: var(--editor-accent);
-  background: var(--editor-panel-soft);
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
   transform: translateY(-2px);
+  box-shadow: var(--editor-hover-glow), 0 8px 22px rgba(0, 0, 0, 0.28);
 }
 
 .editor-presets__card--active {

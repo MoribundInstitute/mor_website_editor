@@ -63,12 +63,19 @@ pub fn MorMenuBar(children: Element) -> Element {
 pub fn MenuItem(
     label: String,
     #[props(default = None)] shortcut: Option<String>,
+    /// When false, still show the chip but don't register a key handler
+    /// (used when `keyboard.rs` already owns the combo).
+    #[props(default = true)] bind_keys: bool,
     #[props(default = false)] disabled: bool,
     #[props(default = None)] on_action: Option<EventHandler<()>>,
 ) -> Element {
     // Empty string = "no binding" so callers can pass prefs fields directly.
     let shortcut = shortcut.filter(|s| !s.is_empty());
-    let bind_shortcut = if disabled { None } else { shortcut.clone() };
+    let bind_shortcut = if disabled || !bind_keys {
+        None
+    } else {
+        shortcut.clone()
+    };
     use_shortcut(bind_shortcut, on_action.clone());
 
     rsx! {
@@ -105,11 +112,11 @@ pub fn AppMenuBar(
     mut show_shortcuts: Signal<bool>,
     mut show_docs: Signal<bool>,
     mut show_ssh_publish: Signal<bool>,
-    on_new_workspace: EventHandler<()>,
+    mut show_new_website: Signal<bool>,
     on_open_folder: EventHandler<()>,
-    on_load_theme: EventHandler<()>,
-    on_save_theme: EventHandler<()>,
-    on_export_css: EventHandler<()>,
+    on_save_to_site: EventHandler<()>,
+    on_load_theme_config: EventHandler<()>,
+    on_save_theme_config_as: EventHandler<()>,
     on_export_zip: EventHandler<()>,
     on_copy_css: EventHandler<()>,
     on_toggle_preview: EventHandler<()>,
@@ -130,35 +137,37 @@ pub fn AppMenuBar(
 
     rsx! {
         MorMenuBar {
-            // 1. FILE
+            // 1. FILE — website-first: open folder, save theme into the site.
             MorMenuDropdown { label: "File".to_string(),
                 MenuItem {
-                    label: "New Theme".to_string(),
-                    on_action: move |_| on_new_workspace.call(())
+                    label: "New Website…".to_string(),
+                    on_action: move |_| show_new_website.set(true)
                 }
                 MenuItem {
                     label: "Open Website Folder…".to_string(),
+                    shortcut: combo(&sc.open_project),
                     on_action: move |_| on_open_folder.call(())
                 }
                 MenuSeparator {}
                 MenuItem {
-                    label: "Load Site Config (.toml)".to_string(),
-                    shortcut: combo(&sc.open_project),
-                    on_action: move |_| on_load_theme.call(())
-                }
-                MenuItem {
-                    label: "Save Site Config (.toml)".to_string(),
+                    label: "Save Theme to Site".to_string(),
                     shortcut: combo(&sc.save_project),
-                    on_action: move |_| on_save_theme.call(())
+                    on_action: move |_| on_save_to_site.call(())
                 }
                 MenuSeparator {}
                 MenuItem {
-                    label: "Export mor-theme.css".to_string(),
-                    shortcut: combo(&sc.export_xml),
-                    on_action: move |_| on_export_css.call(())
+                    label: "Load Theme Config…".to_string(),
+                    on_action: move |_| on_load_theme_config.call(())
                 }
                 MenuItem {
+                    label: "Save Theme Config As…".to_string(),
+                    shortcut: combo(&sc.save_theme_config_as),
+                    on_action: move |_| on_save_theme_config_as.call(())
+                }
+                MenuSeparator {}
+                MenuItem {
                     label: "Export Site Zip…".to_string(),
+                    disabled: !project_open,
                     on_action: move |_| on_export_zip.call(())
                 }
                 MenuItem {
@@ -169,7 +178,7 @@ pub fn AppMenuBar(
                 MenuSeparator {}
                 MenuItem {
                     label: "Exit".to_string(),
-                    shortcut: combo(&sc.exit_architect),
+                    shortcut: combo(&sc.exit_editor),
                     on_action: move |_| -> () { std::process::exit(0); }
                 }
             }
@@ -191,7 +200,7 @@ pub fn AppMenuBar(
                 MenuSeparator {}
                 MenuItem {
                     label: "Copy Theme CSS".to_string(),
-                    shortcut: combo(&sc.copy_raw_xml),
+                    shortcut: combo(&sc.copy_theme_css),
                     on_action: move |_| on_copy_css.call(())
                 }
             }
@@ -220,17 +229,17 @@ pub fn AppMenuBar(
                 MenuSeparator {}
                 MenuItem {
                     label: if (layout.designer_mode)() {
-                        "Designer Mode ✓ (golden path)".to_string()
+                        "Designer Mode ✓ (site + theme)".to_string()
                     } else {
-                        "Designer Mode (golden path)".to_string()
+                        "Designer Mode (site + theme)".to_string()
                     },
                     on_action: move |_| layout.set_designer_mode(true),
                 }
                 MenuItem {
                     label: if !(layout.designer_mode)() {
-                        "Advanced Mode ✓ (all docks)".to_string()
+                        "Advanced Mode ✓ (code + starter kits)".to_string()
                     } else {
-                        "Advanced Mode (all docks)".to_string()
+                        "Advanced Mode (code + starter kits)".to_string()
                     },
                     on_action: move |_| layout.set_designer_mode(false),
                 }
@@ -238,55 +247,59 @@ pub fn AppMenuBar(
 
             // 4. DOCKS
             MorMenuDropdown { label: "Docks".to_string(),
+                // bind_keys: false — keyboard.rs owns these combos globally (works even when
+                // focus is outside the menu root / inside the preview chrome).
                 MenuItem {
                     label: format!("Theme Palette {}", if (layout.theme_palette_pos)() != DockPosition::Hidden { "✓" } else { "" }),
-                    on_action: move |_| {
-                        if (layout.theme_palette_pos)() == DockPosition::Hidden {
-                            layout.theme_palette_pos.set(DockPosition::mor_panel_left);
-                        } else {
-                            layout.theme_palette_pos.set(DockPosition::Hidden);
-                        }
-                    }
+                    shortcut: Some("Alt+T".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("theme_palette"); }
                 }
                 MenuItem {
-                    label: format!("Site Pages {}", if (layout.site_pages_pos)() != DockPosition::Hidden { "✓" } else { "" }),
-                    on_action: move |_| {
-                        if (layout.site_pages_pos)() == DockPosition::Hidden {
-                            layout.site_pages_pos.set(DockPosition::mor_panel_right);
-                        } else {
-                            layout.site_pages_pos.set(DockPosition::Hidden);
-                        }
-                    }
+                    label: format!("Page {}", if (layout.site_pages_pos)() != DockPosition::Hidden { "✓" } else { "" }),
+                    shortcut: Some("Alt+N".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("site_pages"); }
+                }
+                MenuItem {
+                    label: format!("Insert {}", if (layout.insert_dock_pos)() != DockPosition::Hidden { "✓" } else { "" }),
+                    shortcut: Some("Alt+I".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("insert"); }
+                }
+                MenuItem {
+                    label: format!("Inspector {}", if (layout.inspector_dock_pos)() != DockPosition::Hidden { "✓" } else { "" }),
+                    shortcut: Some("Alt+X".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("inspector"); }
+                }
+                MenuItem {
+                    label: format!("Presets {}", if (layout.presets_pos)() != DockPosition::Hidden { "✓" } else { "" }),
+                    shortcut: Some("Alt+R".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("presets"); }
                 }
                 MenuItem {
                     label: format!("Static Pages {}", if (layout.static_pages_pos)() != DockPosition::Hidden { "✓" } else { "" }),
-                    on_action: move |_| {
-                        if (layout.static_pages_pos)() == DockPosition::Hidden {
-                            layout.static_pages_pos.set(DockPosition::mor_panel_left);
-                        } else {
-                            layout.static_pages_pos.set(DockPosition::Hidden);
-                        }
-                    }
+                    on_action: move |_| { layout.toggle_dock_by_id("static_pages"); }
                 }
                 MenuItem {
                     label: format!("CSS Editor {}", if (layout.css_editor_pos)() != DockPosition::Hidden { "✓" } else { "" }),
-                    on_action: move |_| {
-                        if (layout.css_editor_pos)() == DockPosition::Hidden {
-                            layout.css_editor_pos.set(DockPosition::mor_panel_left);
-                        } else {
-                            layout.css_editor_pos.set(DockPosition::Hidden);
-                        }
-                    }
+                    shortcut: Some("Alt+Shift+C".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("css_editor"); }
                 }
                 MenuItem {
                     label: format!("JS Editor {}", if (layout.js_editor_pos)() != DockPosition::Hidden { "✓" } else { "" }),
-                    on_action: move |_| {
-                        if (layout.js_editor_pos)() == DockPosition::Hidden {
-                            layout.js_editor_pos.set(DockPosition::mor_panel_left);
-                        } else {
-                            layout.js_editor_pos.set(DockPosition::Hidden);
-                        }
-                    }
+                    shortcut: Some("Alt+Shift+J".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("js_editor"); }
+                }
+                MenuItem {
+                    label: format!("Diagnostics {}", if (layout.diagnostics_pos)() != DockPosition::Hidden { "✓" } else { "" }),
+                    shortcut: Some("Alt+D".into()),
+                    bind_keys: false,
+                    on_action: move |_| { layout.toggle_dock_by_id("diagnostics"); }
                 }
             }
 

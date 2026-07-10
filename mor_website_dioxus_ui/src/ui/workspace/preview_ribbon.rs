@@ -9,6 +9,7 @@
 use dioxus::prelude::*;
 
 use crate::app::edit_context::{EditContext, SelectionInfo};
+use crate::app::shell::WorkbenchEditState;
 use crate::app::state::{DockPosition, LayoutState, ThemeState};
 use crate::ui::components::icons::{tool_paths, ToolIcon};
 use crate::ui::workspace::layout::{
@@ -23,17 +24,23 @@ enum RibbonTab {
     Selection,
 }
 
-/// Browse | Inspect | Edit. Two booleans, three states: Browse looks and
-/// navigates, Inspect adds outlines + selection, Edit additionally arms the
-/// mutating gestures (text dblclick, widget drag, SVG drop, icon shift-click).
+/// Edit | View | Browser.
+///
+/// - **Edit** — click to select, double-click text, Insert dock (site looks real;
+///   only a thin blue outline marks the selection).
+/// - **View** — published look inside the iframe; links navigate; no chrome.
+/// - **Browser** — open the live local preview server in your system browser.
 #[component]
 pub fn PreviewModeTabs(
     mut is_xray_active: Signal<bool>,
     mut is_edit_active: Signal<bool>,
 ) -> Element {
+    let mut layout = use_context::<LayoutState>();
+    let mut edit_state = use_context::<WorkbenchEditState>();
+    let website = use_context::<crate::app::state::WebsiteState>();
     let mode = match (is_xray_active(), is_edit_active()) {
-        (false, _) => "browse",
-        (true, false) => "inspect",
+        (false, _) => "view",
+        (true, false) => "view_select", // legacy inspect → treat as View-ish
         (true, true) => "edit",
     };
     let seg = |active: bool| {
@@ -49,25 +56,69 @@ pub fn PreviewModeTabs(
             role: "group",
             "aria-label": "Preview mode",
             button {
-                class: seg(mode == "browse"),
-                title: "Browse — links navigate, nothing selectable",
-                onclick: move |_| { is_xray_active.set(false); is_edit_active.set(false); },
-                ToolIcon { d: tool_paths::BROWSE }
-                span { "Browse" }
-            }
-            button {
-                class: seg(mode == "inspect"),
-                title: "Inspect — hover outlines, click selects and focuses the owning panel",
-                onclick: move |_| { is_xray_active.set(true); is_edit_active.set(false); },
-                ToolIcon { d: tool_paths::INSPECT }
-                span { "Inspect" }
-            }
-            button {
                 class: seg(mode == "edit"),
-                title: "Edit — click to select (Webflow-style), double-click text to type, drag widgets, shift-click icons",
-                onclick: move |_| { is_xray_active.set(true); is_edit_active.set(true); },
+                title: "Edit — site looks as published; click to select, double-click text, Insert for blocks",
+                onclick: move |_| {
+                    is_xray_active.set(true);
+                    is_edit_active.set(true);
+                    if (layout.insert_dock_pos)() == DockPosition::Hidden {
+                        layout.request_dock("insert", DockPosition::mor_panel_right);
+                    }
+                    edit_state.workbench_status.set(
+                        "Edit · real site look — click to select, double-click text, Alt+X Inspector"
+                            .into(),
+                    );
+                },
                 ToolIcon { d: tool_paths::EDIT_PEN }
                 span { "Edit" }
+            }
+            button {
+                class: seg(mode == "view" || mode == "view_select"),
+                title: "View — how the site looks with no edit outlines (links navigate in the preview)",
+                onclick: move |_| {
+                    is_xray_active.set(false);
+                    is_edit_active.set(false);
+                    edit_state
+                        .workbench_status
+                        .set("View · published look in the preview".into());
+                },
+                ToolIcon { d: tool_paths::BROWSE }
+                span { "View" }
+            }
+            button {
+                class: "editor-mini-button mor-mode-btn",
+                title: "Open this page in your system browser (real PHP/CSS as visitors see it)",
+                onclick: move |_| {
+                    let project = website.project.peek().clone();
+                    let Some(info) = website.server.peek().clone() else {
+                        edit_state.workbench_status.set(
+                            "No preview server — open a website folder first".into(),
+                        );
+                        return;
+                    };
+                    let page = website
+                        .current_page
+                        .peek()
+                        .clone()
+                        .or_else(|| project.default_page().map(str::to_string))
+                        .unwrap_or_else(|| "index.php".into());
+                    let page = page.trim_start_matches('/');
+                    let url = format!("http://127.0.0.1:{}/{page}", info.port);
+                    match std::process::Command::new("xdg-open").arg(&url).spawn() {
+                        Ok(_) => {
+                            edit_state
+                                .workbench_status
+                                .set(format!("Opened browser → {url}"));
+                        }
+                        Err(e) => {
+                            edit_state
+                                .workbench_status
+                                .set(format!("Could not open browser: {e} (try {url})"));
+                        }
+                    }
+                },
+                ToolIcon { d: tool_paths::EXTERNAL_LINK }
+                span { "Browser" }
             }
         }
     }
@@ -129,8 +180,8 @@ pub fn PreviewRibbon(
     // The mode hairline: the ribbon carries its mode as a class; CSS keys
     // the bottom rule and active segment color off it.
     let mode_class = match (is_xray_active(), is_edit_active()) {
-        (false, _) => "mode-browse",
-        (true, false) => "mode-inspect",
+        (false, _) => "mode-view",
+        (true, false) => "mode-view",
         (true, true) => "mode-edit",
     };
 
@@ -142,6 +193,7 @@ pub fn PreviewRibbon(
             EditContext::Component => "Component",
             EditContext::SiteField => "Site field",
             EditContext::NavLink => "Nav link",
+            EditContext::Instance => "Element",
             EditContext::CodeOnly => "Selection",
         })
         .unwrap_or("Selection");
@@ -201,7 +253,29 @@ fn HomeTabGroups() -> Element {
     let theme = use_context::<ThemeState>();
     let mut layout = use_context::<LayoutState>();
     let signals = theme.signals;
+    use crate::ui::workspace::rich_edit::{iframe_rich_cmd, iframe_rich_insert_html};
+    let preset_name = (theme.active_preset)()
+        .and_then(|id| {
+            mor_website_core::presets::all_presets()
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.name)
+        })
+        .unwrap_or("Custom / no preset");
     rsx! {
+        div {
+            class: "preview-toolbar-group",
+            style: "margin: 0; align-items: center;",
+            GroupCaption { text: "Look" }
+            button {
+                class: "editor-mini-button",
+                title: "Active theme preset — click to open Presets",
+                onclick: move |_| {
+                    layout.request_dock("presets", DockPosition::mor_panel_left);
+                },
+                "Preset · {preset_name}"
+            }
+        }
         div {
             class: "preview-toolbar-group",
             style: "margin: 0;",
@@ -237,6 +311,59 @@ fn HomeTabGroups() -> Element {
                 title: "Open the full Typography panel",
                 onclick: move |_| layout.focus_palette_panel("Typography"),
                 "Typography…"
+            }
+        }
+        div {
+            class: "preview-toolbar-group",
+            style: "margin: 0;",
+            GroupCaption { text: "Insert" }
+            button {
+                class: "editor-mini-button mor-tool-btn is-active",
+                title: "Insert dock (Alt+I) — content blocks, images; also activity bar ➕",
+                onclick: move |_| {
+                    layout.request_dock("insert", DockPosition::mor_panel_right);
+                },
+                "➕ Insert"
+            }
+            button {
+                class: "editor-mini-button",
+                title: "Link — double-click text, select words, then Link in the floating bar (or Ctrl+K)",
+                onclick: move |_| iframe_rich_cmd("createLink", None),
+                "Link"
+            }
+            button {
+                class: "editor-mini-button",
+                title: "Bold (Ctrl+B) — double-click text first",
+                onclick: move |_| iframe_rich_cmd("bold", None),
+                "Bold"
+            }
+            button {
+                class: "editor-mini-button",
+                title: "Italic (Ctrl+I)",
+                onclick: move |_| iframe_rich_cmd("italic", None),
+                "Italic"
+            }
+            button {
+                class: "editor-mini-button",
+                title: "Bullet list — double-click a paragraph first",
+                onclick: move |_| iframe_rich_cmd("insertUnorderedList", None),
+                "List"
+            }
+            button {
+                class: "editor-mini-button",
+                title: "Insert a primary-style button (into the active text edit)",
+                onclick: move |_| {
+                    iframe_rich_insert_html(" <a class=\"btn-primary\" href=\"#\">Button</a> ");
+                },
+                "Button"
+            }
+            button {
+                class: "editor-mini-button",
+                title: "Insert a horizontal divider",
+                onclick: move |_| {
+                    iframe_rich_insert_html("<hr />");
+                },
+                "Divider"
             }
         }
     }
@@ -461,10 +588,32 @@ fn SelectionTabGroups(active_selection: Signal<Option<SelectionInfo>>) -> Elemen
                             }
                         }
                     }
+                    button {
+                        class: "editor-mini-button",
+                        title: "Inspector dock (Alt+X)",
+                        onclick: move |_| {
+                            layout.request_dock("inspector", DockPosition::mor_panel_right);
+                        },
+                        "Inspector…"
+                    }
                 }
             },
             (EditContext::NavLink, _) => rsx! {
                 NavLinkEditors { active_selection }
+            },
+            (EditContext::Instance, _) => rsx! {
+                div {
+                    class: "preview-toolbar-group",
+                    style: "margin: 0;",
+                    button {
+                        class: "editor-mini-button",
+                        title: "Open Inspector for link / image / button fields (Alt+X)",
+                        onclick: move |_| {
+                            layout.request_dock("inspector", DockPosition::mor_panel_right);
+                        },
+                        "Inspector…"
+                    }
+                }
             },
             // SiteField/Widget: the canvas chip identifies them and the
             // code-reveal path already fires on select. CodeOnly: no action.

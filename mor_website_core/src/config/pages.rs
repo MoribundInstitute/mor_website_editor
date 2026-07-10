@@ -99,7 +99,7 @@ impl Default for AnalyticsDashboardPageConfig {
             layout: PageLayout::default(),
             kicker: "THE_MORIBUND_INSTITUTE // ANALYTICS".to_string(),
             title: "Analytics Dashboard".to_string(),
-            description: "A Blogger HTML page dashboard for public feed activity, category balance, publishing rhythm, and manual analytics metrics.".to_string(),
+            description: "An HTML page dashboard for public feed activity, category balance, publishing rhythm, and manual analytics metrics.".to_string(),
             max_results: 150,
             manual_followers: "Manual".to_string(),
             manual_thirty_day_views: "Manual".to_string(),

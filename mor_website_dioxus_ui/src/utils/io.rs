@@ -18,7 +18,7 @@ pub fn save_css(css: &str) {
 
 pub fn save_toml(toml: &str) {
     if let Some(path) = FileDialog::new()
-        .set_title("Save Workspace")
+        .set_title("Save Theme Config As")
         .set_file_name("workspace.toml")
         .add_filter("TOML Config", &["toml"])
         .save_file()
@@ -29,7 +29,7 @@ pub fn save_toml(toml: &str) {
 
 pub fn load_toml() -> Option<String> {
     if let Some(path) = FileDialog::new()
-        .set_title("Load Workspace")
+        .set_title("Load Theme Config")
         .add_filter("TOML Config", &["toml"])
         .pick_file()
     {
@@ -55,15 +55,15 @@ pub fn export_bundle(css: &str, toml: &str) {
             let _ = zip.start_file("mor-theme.css", options);
             let _ = zip.write_all(css.as_bytes());
 
-            let _ = zip.start_file("workspace-backup.toml", options);
+            let _ = zip.start_file("workspace.toml", options);
             let _ = zip.write_all(toml.as_bytes());
 
             let readme = "MorWebsite Theme Bundle\n\n\
-1. Drop mor-theme.css into your website project root.\n\
-2. Link it from every page:\n\
+1. Drop mor-theme.css (and workspace.toml) into your website project root.\n\
+2. Link the stylesheet from every page:\n\
      <link rel=\"stylesheet\" href=\"/mor-theme.css\" />\n\
-3. To keep editing later, open the folder in MorWebsite Editor and\n\
-   load workspace-backup.toml via File → Load Site Config.\n\
+3. To keep editing: File → Open Website Folder… on that directory.\n\
+   The editor loads workspace.toml automatically when present.\n\
 \n\
 See docs/SITE_CONTRACT.md for the modular site contract.\n";
             let _ = zip.start_file("README.txt", options);

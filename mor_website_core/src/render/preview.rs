@@ -1,6 +1,6 @@
 //! In-editor preview HTML. Produces the HTML that gets shown in the
-//! right-panel preview iframe. Distinct from `theme::render_theme`, which
-//! produces uploadable Blogger XML.
+//! right-panel preview iframe. Distinct from website export (`mor-theme.css`
+//! / page files on disk).
 
 use super::tracking::{menu_link_anchor, widget_title_h2};
 use super::util::{escape_attr, escape_html, unescape_for_style};
@@ -34,9 +34,9 @@ fn get_default_posts() -> Vec<BlogPost> {
             title: "Welcome to Your Live Preview".to_string(),
             date: "24 Oct, 2026".to_string(),
             tags: vec!["Preview".to_string(), "Getting Started".to_string()],
-            snippet: "This preview shows exactly how your blog will look once your theme is published to Blogger: the same layout, fonts, and colors your readers will see. No surprises after export.".to_string(),
+            snippet: "This preview shows how your site looks with live theme tokens: the same layout, fonts, and colors visitors will see after you save mor-theme.css into the project.".to_string(),
             featured_image: None,
-            body: "<p>This preview shows exactly how your blog will look once your theme is published to Blogger: the same layout, fonts, and colors your readers will see. No surprises after export.</p>\n<p><strong>Try it now:</strong> pick a different color or font in the side panels and watch this page update instantly. Nothing reloads and you never lose your place on the page.</p>\n<blockquote>\"What you see here is what your readers get. This preview is built from the very same theme file you upload to Blogger.\"</blockquote>\n<p>Handy shortcut: turn on <strong>X-Ray</strong> (the skeleton button in the toolbar), then click any text, background, or <code data-edit-target=\"typography.mono_font_stack\">code snippet</code> to jump straight to the setting that controls it. Hold <strong>Shift</strong> and click any icon to swap it.</p>".to_string(),
+            body: "<p>This preview shows how your site looks with live theme tokens: the same layout, fonts, and colors visitors will see after you save <code>mor-theme.css</code> into the project.</p>\n<p><strong>Try it now:</strong> pick a different color or font in the side panels and watch this page update instantly. Nothing reloads and you never lose your place on the page.</p>\n<blockquote>\"What you see here is what your readers get — open a website folder, edit the theme, then File → Save Theme to Site.\"</blockquote>\n<p>Handy shortcut: use the <strong>Inspector</strong>, then click any text, background, or <code data-edit-target=\"typography.mono_font_stack\">code snippet</code> to jump straight to the setting that controls it.</p>".to_string(),
             url: "#".to_string(),
             author_name: "Moribund Engine".to_string(),
         }
@@ -436,10 +436,10 @@ pub fn preview_footer_html(config: &ThemeConfig) -> String {
     )
 }
 
-/// Render a SINGLE widget, by Blogger type, with representative dummy data,
-/// wrapped in the theme's widget markup so it picks up the live CSS. Used by the
-/// Widget Workbench's master-canvas preview for dynamic widgets that have no
-/// static HTML of their own. Unknown types fall back to a generic gadget card.
+/// Render a SINGLE widget by type, with representative dummy data, wrapped in
+/// the theme's widget markup so it picks up the live CSS. Used by the Widget
+/// Workbench master-canvas preview for dynamic widgets that have no static HTML
+/// of their own. Unknown types fall back to a generic card.
 pub fn preview_widget_html(
     config: &ThemeConfig,
     w_type: &str,
@@ -472,13 +472,13 @@ pub fn preview_widget_html(
         "BlogArchive" => r##"<ul class="archive-list"><li><a href="#">October 2026 <span class="post-count">(12)</span></a></li><li><a href="#">September 2026 <span class="post-count">(8)</span></a></li><li><a href="#">August 2026 <span class="post-count">(5)</span></a></li></ul>"##.to_string(),
         "Label" | "Labels" => r##"<ul class="label-list"><li><a href="#">Typography</a></li><li><a href="#">Design</a></li><li><a href="#">Dev</a></li><li><a href="#">Architecture</a></li></ul>"##.to_string(),
         "PageList" => r##"<ul class="page-list"><li><a href="#">Home</a></li><li><a href="#">About</a></li><li><a href="#">Archive</a></li><li><a href="#">Contact</a></li></ul>"##.to_string(),
-        "Profile" => r#"<p>A short author bio renders here on the live blog, pulled from your Blogger profile.</p>"#.to_string(),
+        "Profile" => r#"<p>A short author bio renders here on the live site.</p>"#.to_string(),
         "Subscribe" => r##"<ul class="subscribe-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;"><li class="subscribe-wrapper" style="display:flex;align-items:center;gap:8px;"><span class="feed-icon">📡</span> Posts <a href="#">Atom</a></li><li class="subscribe-wrapper" style="display:flex;align-items:center;gap:8px;"><span class="feed-icon">💬</span> Comments <a href="#">Atom</a></li></ul>"##.to_string(),
         "Wikipedia" => r#"<form class="wikipedia-search-form" onsubmit="return false;" style="display:flex;gap:6px;align-items:center;"><img class="wikipedia-icon" src="https://resources.blogblog.com/img/widgets/icon_wikipedia_w.png" style="width:24px;height:24px;flex:0 0 auto;"/><input class="wikipedia-search-input" type="text" placeholder="Search Wikipedia…" style="flex:1;min-width:0;"/><input class="wikipedia-search-button" type="submit" value="Go"/></form>"#.to_string(),
         "Translate" => r#"<div id="google_translate_element"><label style="display:flex;gap:6px;align-items:center;">🌐 <select><option>Select language</option><option>English</option><option>Español</option><option>Français</option><option>Deutsch</option></select></label></div>"#.to_string(),
         "ContactForm" => r#"<form><input type="text" placeholder="Name"><input type="email" placeholder="Email"><textarea placeholder="Message"></textarea><button type="button">Send</button></form>"#.to_string(),
-        "HTML" => r#"<p>Custom HTML gadget. Add markup in the Code tab to see it rendered here.</p>"#.to_string(),
-        _ => format!("<p>{} widget renders live on Blogger.</p>", escape_html(w_type)),
+        "HTML" => r#"<p>Custom HTML block. Add markup in the Code tab to see it rendered here.</p>"#.to_string(),
+        _ => format!("<p>{} widget — preview placeholder for the live site.</p>", escape_html(w_type)),
     };
 
     format!(
@@ -666,13 +666,13 @@ mod tests {
         // Content widget → main canvas with post markup.
         let blog = preview_widget_html(&config, "Blog", "", &[]);
         assert!(blog.contains("canvas-core"));
-        // Sidebar widget → themed gadget block with a type-specific list.
+        // Sidebar widget → themed block with a type-specific list.
         let archive = preview_widget_html(&config, "BlogArchive", "", &[]);
         assert!(archive.contains(r#"class="widget BlogArchive""#));
         assert!(archive.contains("archive-list"));
-        // Unknown type → generic gadget card, never empty.
+        // Unknown type → generic card, never empty.
         let unknown = preview_widget_html(&config, "Weird", "", &[]);
-        assert!(unknown.contains("renders live on Blogger"));
+        assert!(unknown.contains("preview placeholder for the live site"));
     }
 
     // The preview header used to be hardcoded to the site title and ignored

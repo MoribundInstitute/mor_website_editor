@@ -17,3 +17,36 @@
 .editor-layout-floating .editor-floating-drag-handle::after {
   content: none;
 }
+
+/* Cross-cutting hover polish for list rows / status chrome (not owned by a panel). */
+.page-map-list-item {
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
+}
+
+.page-map-list-item:hover {
+  border-color: var(--editor-hover-border, #555);
+  background: var(--editor-hover-bg-strong, #1c1c1c);
+  box-shadow: var(--editor-hover-glow);
+  transform: translateX(1px);
+}
+
+.editor-statusbar button:hover {
+  background: var(--editor-hover-bg-strong) !important;
+  color: var(--editor-text);
+}
+
+/* Site Pages / Insert dock list rows (class-less editor-mini-buttons full-width). */
+.site-pages-panel .editor-mini-button:hover:not(:disabled),
+.insert-dock-panel .editor-mini-button:hover:not(:disabled),
+.inspector-dock-panel .editor-mini-button:hover:not(:disabled) {
+  transform: none;
+}
+
+.site-pages-panel .editor-mini-button.editor-mini-button-active:hover,
+.insert-dock-panel button.editor-button:hover {
+  box-shadow: var(--editor-hover-glow);
+}

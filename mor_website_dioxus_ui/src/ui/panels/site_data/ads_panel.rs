@@ -6,7 +6,7 @@
 //!
 //! Validation is friction-free: nothing here refuses to save or export.
 //! When required fields are missing for the chosen mode, the panel shows
-//! a warning banner so the blogger knows their export will be incomplete.
+//! a warning banner so the author knows the saved theme will be incomplete.
 //! Whether to fix it is their choice.
 
 use dioxus::prelude::*;
@@ -50,7 +50,7 @@ pub fn AdsPanel(mut ads: Signal<AdsConfig>) -> Element {
                     current_mode: current.mode,
                     value: AdsMode::Always,
                     label: "Ads always on",
-                    description: "Uses Blogger's native AdSense widget. Readers see ads on every page if you've linked an AdSense account in Blogger's Settings → Earnings.",
+                    description: "Injects AdSense markup into the theme. Readers see ads on every page once you set a publisher ID and slot IDs below.",
                     on_select: move |m| {
                         let mut next = ads();
                         next.mode = m;

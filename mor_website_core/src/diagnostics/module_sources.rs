@@ -63,7 +63,10 @@ fn module_display_path(slot: &str, variant_id: &str) -> String {
         ("layout", "sidebars") => "sidebars.xml".to_string(),
         ("layout", "single_column") => "single_column.xml".to_string(),
         ("layout", "two_column_right") => "two_column_right.xml".to_string(),
-        ("left_sidebar", "blogger_left") => "blogger_left.xml".to_string(),
+        // `blogger_left` is the pre-rename id — still resolve for old workspace.toml files.
+        ("left_sidebar", "sidebar_labels") | ("left_sidebar", "blogger_left") => {
+            "sidebar_labels.xml".to_string()
+        }
         ("left_sidebar", "gtk_dock_left") => "gtk_dock_left.xml".to_string(),
         ("right_sidebar", "toc_right") => "toc_right.xml".to_string(),
         ("footer", "mega") => "MorFooterMega.xml".to_string(),

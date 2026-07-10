@@ -111,7 +111,7 @@ mod tests {
         assert_eq!(f("layouts/two_column_right.xml"), Some("main_variant"));
         // real sidebars still resolve, left vs right.
         assert_eq!(f("sidebars/toc_right.xml"), Some("right_sidebar_variant"));
-        assert_eq!(f("sidebars/blogger_left.xml"), Some("left_sidebar_variant"));
+        assert_eq!(f("sidebars/sidebar_labels.xml"), Some("left_sidebar_variant"));
         // no keyword → fall back to the currently-selected slot.
         assert_eq!(infer_module_slot("mystery.xml", Some("footer_variant")), Some("footer_variant"));
         assert_eq!(infer_module_slot("mystery.xml", None), None);
@@ -135,7 +135,7 @@ pub fn TemplateModulesDock() -> Element {
             position: pos,
             default_position: DockPosition::mor_panel_left,
             DockChrome {
-                title: "TEMPLATE MODULES".to_string(),
+                title: "Starter kits (legacy)".to_string(),
                 dock_id: "template_modules".to_string(),
                 position: pos,
                 on_close: move |_| {
@@ -144,6 +144,10 @@ pub fn TemplateModulesDock() -> Element {
                 div {
                     class: "palette-content template-modules",
                     style: "padding: 12px; height: calc(100% - 45px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; background: var(--bg-panel); color: var(--fg-base);",
+                    p {
+                        style: "margin: 0 0 8px 0; font-size: 0.78rem; color: var(--fg-muted); line-height: 1.45;",
+                        "Advanced · optional scaffold for new sites. Live sites use files on disk — prefer Page, Insert, and Code."
+                    }
                     for (label, key) in TEMPLATE_LAYOUTS {
                         button {
                             class: if (layout.active_workbench_module)() == Some(key) { "template-module-btn editor-button editor-button-active" } else { "template-module-btn editor-button" },

@@ -157,8 +157,8 @@ pub fn generate_portfolio_html(config: &crate::config::pages::PortfolioPageConfi
                         <span class="mor-tag">Rust</span>
                         <span class="mor-tag">Dioxus</span>
                     </div>
-                    <h2 class="mor-project-title">Moribund Architect</h2>
-                    <p class="mor-project-desc">A desktop GUI theme engine that compiles raw layout settings into fully functional, modular Blogger XML templates.</p>
+                    <h2 class="mor-project-title">MorWebsite Editor</h2>
+                    <p class="mor-project-desc">A desktop GUI theme engine that compiles design tokens into mor-theme.css and keeps your local website folder in sync.</p>
                     <div class="mor-project-links">
                         <span class="mor-project-link">View Case Study &rarr;</span>
                     </div>

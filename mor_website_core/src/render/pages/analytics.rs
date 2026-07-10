@@ -10,7 +10,7 @@ fn escape_js(value: &str) -> String {
         .replace("</script>", "<\\/script>")
 }
 
-/// Emits the Analytics Dashboard page as a Blogger HTML-page stencil.
+/// Emits the Analytics Dashboard page as an HTML stencil for static pages.
 ///
 /// This page intentionally emits layout + data hooks only. It inherits the
 /// visual system from the Mor theme skin, especially tokens like:
@@ -28,11 +28,11 @@ pub fn generate_analytics_dashboard_html(config: &AnalyticsDashboardPageConfig) 
   </section>
 
   <div class="mor-analytics-notice">
-    Public Blogger feeds can populate posts, comments, labels, and publish rhythm. Private dashboard-only metrics such as followers, storage, and pageviews use manual fallback values unless you wire in a private data source.
+    Public site feeds can populate posts, comments, labels, and publish rhythm. Private dashboard-only metrics such as followers, storage, and pageviews use manual fallback values unless you wire in a private data source.
   </div>
 
   <section class="mor-analytics-summary" aria-labelledby="mor-analytics-summary-title">
-    <h3 id="mor-analytics-summary-title">Blog Summary</h3>
+    <h3 id="mor-analytics-summary-title">Site Summary</h3>
     <ul class="mor-analytics-stat-grid">
       <li><span>Total Posts</span><strong id="mor-analytics-total-posts">Loading...</strong></li>
       <li><span>Total Comments</span><strong id="mor-analytics-total-comments">Loading...</strong></li>
@@ -47,8 +47,8 @@ pub fn generate_analytics_dashboard_html(config: &AnalyticsDashboardPageConfig) 
   <div class="mor-analytics-grid">
     <section class="mor-analytics-card">
       <div class="mor-analytics-card-head">
-        <h3>Blog Visitors</h3>
-        <p>Manual placeholder because Blogger pageviews are not exposed through public feeds.</p>
+        <h3>Visitors</h3>
+        <p>Manual placeholder when pageviews are not exposed through public feeds.</p>
       </div>
       <div class="mor-analytics-button-row">
         <button type="button" class="mor-analytics-button" data-mor-analytics-range="daily">Daily</button>
@@ -63,7 +63,7 @@ pub fn generate_analytics_dashboard_html(config: &AnalyticsDashboardPageConfig) 
     <section class="mor-analytics-card">
       <div class="mor-analytics-card-head">
         <h3>Posts by Category</h3>
-        <p>Built from Blogger post feed labels.</p>
+        <p>Built from public post feed labels.</p>
       </div>
       <div class="mor-analytics-category-layout">
         <div class="mor-analytics-pie" id="mor-analytics-category-pie" aria-hidden="true"></div>

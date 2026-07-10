@@ -5,7 +5,7 @@
 /* ============================================================
    00-tokens.css
    ============================================================ */
-/* CSS custom properties (design tokens) for the Theme Architect editor UI.
+/* CSS custom properties (design tokens) for the MorWebsite Editor UI.
    Token bridge: maps legacy --editor-* aliases to live --mor-* theme variables. */
 
 :root {
@@ -29,6 +29,14 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  /* Shared hover language — used by buttons, docks, menus, cards. */
+  --editor-bg-hover: color-mix(in srgb, var(--mor-accent) 12%, var(--mor-panel));
+  --editor-hover-bg: color-mix(in srgb, var(--mor-text) 8%, transparent);
+  --editor-hover-bg-strong: color-mix(in srgb, var(--mor-accent) 16%, transparent);
+  --editor-hover-border: color-mix(in srgb, var(--mor-accent) 55%, var(--mor-border));
+  --editor-hover-glow: 0 0 0 1px color-mix(in srgb, var(--mor-accent) 28%, transparent),
+    0 2px 10px color-mix(in srgb, var(--mor-accent) 12%, transparent);
+  --editor-hover-ease: 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Global box-sizing reset */
@@ -140,15 +148,40 @@ html {
   font-size: 1.1rem;
 }
 
+.dock-btn,
+.launch-btn {
+  transition:
+    background var(--editor-hover-ease),
+    border-color var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
+}
+
 .dock-btn:hover,
 .launch-btn:hover {
-  background: var(--editor-bg-hover);
+  background: var(--editor-bg-hover, var(--editor-hover-bg-strong));
+  border-color: var(--editor-hover-border);
+  color: var(--editor-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--editor-accent) 20%, transparent);
+}
+
+.dock-btn:active,
+.launch-btn:active {
+  transform: scale(0.96);
 }
 
 .dock-btn.active,
 .launch-btn.active {
-  background: var(--editor-bg-hover);
-  border-color: var(--editor-border-soft);
+  background: color-mix(in srgb, var(--editor-accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--editor-accent) 45%, var(--editor-border-soft));
+  color: var(--editor-accent);
+  box-shadow: inset 2px 0 0 var(--editor-accent);
+}
+
+.dock-btn.active:hover,
+.launch-btn.active:hover {
+  background: color-mix(in srgb, var(--editor-accent) 24%, transparent);
 }
 
 .panel-container {
@@ -339,7 +372,8 @@ html {
 
 .editor-collapse-button:hover {
   color: var(--editor-text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--editor-hover-bg-strong, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--editor-accent) 25%, transparent);
 }
 
 /* ============================================================
@@ -448,6 +482,22 @@ html {
   background: var(--editor-bg-deep);
   border-bottom: 1px solid var(--editor-border);
   overflow-x: auto;
+}
+
+.mor-tabs .mor-tab {
+  transition:
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    border-color var(--editor-hover-ease);
+}
+
+.mor-tabs .mor-tab:hover:not(.active) {
+  background: var(--editor-hover-bg-strong);
+  color: var(--editor-text);
+}
+
+.mor-tabs .mor-tab.active:hover {
+  background: color-mix(in srgb, var(--editor-accent) 14%, var(--editor-panel-raised));
 }
 
 /* =========================================================
@@ -612,13 +662,26 @@ button.mor-shortcut-keys:hover .mor-keycap {
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  transition: background 0.2s;
+  transition:
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
 }
 
-.editor-accordion-header:hover,
+.editor-accordion-header:hover {
+  background-color: var(--editor-hover-bg-strong);
+  color: var(--editor-text);
+  box-shadow: inset 3px 0 0 var(--editor-accent);
+}
+
 .editor-accordion-header.active {
-  background-color: var(--editor-accent);
-  color: var(--editor-bg);
+  background-color: color-mix(in srgb, var(--editor-accent) 18%, var(--editor-panel-raised));
+  color: var(--editor-accent-warm, var(--editor-accent));
+  box-shadow: inset 3px 0 0 var(--editor-accent);
+}
+
+.editor-accordion-header.active:hover {
+  background-color: color-mix(in srgb, var(--editor-accent) 26%, var(--editor-panel-raised));
 }
 
 .editor-accordion-section-open .editor-accordion-header {
@@ -684,7 +747,8 @@ button.mor-shortcut-keys:hover .mor-keycap {
 
 .editor-field,
 .editor-select,
-.editor-textarea {
+.editor-textarea,
+.editor-input {
   width: 100%;
   padding: 8px 12px;
   background: color-mix(in srgb, var(--editor-text) 15%, transparent);
@@ -693,12 +757,24 @@ button.mor-shortcut-keys:hover .mor-keycap {
   border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
+}
+
+.editor-field:hover,
+.editor-select:hover,
+.editor-textarea:hover,
+.editor-input:hover {
+  border-color: var(--editor-hover-border);
+  background: color-mix(in srgb, var(--editor-text) 12%, transparent);
 }
 
 .editor-field:focus,
 .editor-select:focus,
-.editor-textarea:focus {
+.editor-textarea:focus,
+.editor-input:focus {
   border-color: var(--editor-accent);
   box-shadow: 0 0 0 3px var(--editor-focus);
   outline: none;
@@ -719,18 +795,45 @@ button.mor-shortcut-keys:hover .mor-keycap {
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
 }
 
-.editor-button:hover {
-  border-color: var(--editor-muted);
-  background: color-mix(in srgb, var(--editor-text) 15%, transparent);
+.editor-button:hover:not(:disabled) {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
+  box-shadow: var(--editor-hover-glow);
+}
+
+.editor-button:active:not(:disabled) {
+  transform: translateY(0.5px);
+  box-shadow: none;
 }
 
 .editor-button-active {
   border-color: var(--editor-accent);
   color: var(--editor-accent);
-  background: color-mix(in srgb, var(--editor-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--editor-accent) 12%, transparent);
+}
+
+.editor-button-active:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--editor-accent) 20%, transparent);
+  border-color: var(--editor-accent);
+}
+
+.editor-button-good {
+  border-color: color-mix(in srgb, var(--editor-good, #3fb950) 45%, var(--editor-border));
+  color: var(--editor-good, #3fb950);
+}
+
+.editor-button-good:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--editor-good, #3fb950) 16%, transparent);
+  border-color: var(--editor-good, #3fb950);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--editor-good, #3fb950) 25%, transparent);
 }
 
 .editor-button-danger {
@@ -738,9 +841,10 @@ button.mor-shortcut-keys:hover .mor-keycap {
   color: var(--editor-danger);
 }
 
-.editor-button-danger:hover {
+.editor-button-danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--editor-danger) 15%, transparent);
   border-color: var(--editor-danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--editor-danger) 30%, transparent);
 }
 
 .editor-note {
@@ -784,6 +888,7 @@ input[type="checkbox"] {
 
 input[type="checkbox"]:hover {
   border-color: var(--editor-accent);
+  box-shadow: 0 0 0 3px var(--editor-focus);
 }
 
 input[type="checkbox"]:checked {
@@ -904,18 +1009,43 @@ input[type="color"]:focus-visible {
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
 }
 
-.editor-mini-button:hover {
-  border-color: var(--editor-muted);
-  background: rgba(255, 255, 255, 0.08);
+.editor-mini-button:hover:not(:disabled):not(.editor-mini-button-disabled) {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
+  color: var(--editor-text);
+  box-shadow: var(--editor-hover-glow);
+}
+
+.editor-mini-button:active:not(:disabled):not(.editor-mini-button-disabled) {
+  transform: translateY(0.5px);
+  box-shadow: none;
 }
 
 .editor-mini-button-active {
   border-color: var(--editor-accent);
   color: var(--editor-accent);
-  background: color-mix(in srgb, var(--editor-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--editor-accent) 12%, transparent);
+}
+
+.editor-mini-button-active:hover:not(:disabled) {
+  border-color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 20%, transparent);
+  color: var(--editor-accent-warm, var(--editor-accent));
+  box-shadow: var(--editor-hover-glow);
+}
+
+.editor-mini-button:disabled,
+.editor-mini-button-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Segmented control: mutually-exclusive mini-buttons sharing one border. */
@@ -1018,12 +1148,16 @@ input[type="color"]:focus-visible {
   cursor: default;
   color: var(--editor-text);
   border-radius: var(--radius-sm, 6px);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
 }
 
 .mor-menu-bar > .mor-menu-item:hover {
-  background-color: var(--editor-panel-raised);
+  background-color: var(--editor-hover-bg-strong);
   color: var(--editor-text);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--editor-accent) 70%, transparent);
 }
 
 /* The Dropdown Container */
@@ -1061,7 +1195,10 @@ input[type="color"]:focus-visible {
   font-family: var(--font-sans), sans-serif;
   cursor: pointer;
   border-radius: var(--radius-sm, 6px);
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition:
+    background-color var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
   box-sizing: border-box;
   text-align: left;
 }
@@ -1069,6 +1206,7 @@ input[type="color"]:focus-visible {
 .mor-menu-dropdown .mor-menu-item:hover:not(.disabled) {
   background-color: var(--editor-accent);
   color: #ffffff;
+  transform: translateX(1px);
 }
 
 .mor-menu-dropdown .mor-menu-item.disabled {
@@ -1139,13 +1277,18 @@ input[type="color"]:focus-visible {
   text-align: left;
   font-family: inherit;
   color: var(--editor-text);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color var(--editor-hover-ease),
+    transform var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    background var(--editor-hover-ease);
 }
 
 .editor-presets__card:hover {
-  border-color: var(--editor-accent);
-  background: var(--editor-panel-soft);
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
   transform: translateY(-2px);
+  box-shadow: var(--editor-hover-glow), 0 8px 22px rgba(0, 0, 0, 0.28);
 }
 
 .editor-presets__card--active {
@@ -1715,12 +1858,25 @@ body.editor-floating-dragging iframe {
 
 .preview-ribbon.mode-inspect { --mode-color: var(--editor-accent, #58a6ff); }
 .preview-ribbon.mode-edit { --mode-color: var(--d29922, #d29922); }
+.preview-ribbon.mode-view { --mode-color: var(--editor-accent, #6d8fb8); }
 
 /* Mode segment: icon + word; the active segment carries the mode color. */
 .mor-mode-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
+}
+
+.mor-mode-btn:hover:not(.is-active) {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
+  color: var(--fg-base, var(--editor-text));
+  box-shadow: var(--editor-hover-glow);
 }
 
 .mor-mode-btn.is-active {
@@ -1729,12 +1885,17 @@ body.editor-floating-dragging iframe {
   background: color-mix(in srgb, var(--mode-color) 12%, transparent);
 }
 
-/* Browse's mode color is the neutral border grey — fine for the hairline,
-   too dim for the active segment's text. Read as plainly active instead. */
+.mor-mode-btn.is-active:hover {
+  background: color-mix(in srgb, var(--mode-color) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mode-color) 30%, transparent);
+}
+
+/* View mode: active segment should stay readable. */
+.preview-ribbon.mode-view .mor-mode-btn.is-active,
 .preview-ribbon.mode-browse .mor-mode-btn.is-active {
-  color: var(--fg-base);
+  color: var(--fg-base, var(--editor-text));
   border-color: var(--editor-border);
-  background: var(--bg-elevated);
+  background: var(--bg-elevated, var(--editor-panel-raised));
 }
 
 /* Ribbon tabs read as tabs, not buttons: quiet until active, then a
@@ -1745,15 +1906,28 @@ body.editor-floating-dragging iframe {
   gap: 5px;
   background: transparent;
   border-color: transparent;
-  color: var(--fg-muted);
+  color: var(--fg-muted, var(--editor-muted));
+  transition:
+    color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    border-color var(--editor-hover-ease);
 }
 
-.mor-ribbon-tab:hover { color: var(--fg-base); }
+.mor-ribbon-tab:hover {
+  color: var(--fg-base, var(--editor-text));
+  background: var(--editor-hover-bg);
+  border-color: transparent;
+}
 
 .mor-ribbon-tab.is-active {
-  color: var(--fg-base);
+  color: var(--fg-base, var(--editor-text));
   border-color: var(--editor-border);
-  background: var(--bg-elevated);
+  background: var(--bg-elevated, var(--editor-panel-raised));
+}
+
+.mor-ribbon-tab.is-active:hover {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
 }
 
 /* Instrument-cluster caption naming a tool group. */
@@ -1846,6 +2020,7 @@ body.editor-floating-dragging iframe {
   color: var(--fg-muted);
 }
 
+
 /* ============================================================
    34-preset-floating.css
    ============================================================ */
@@ -1930,9 +2105,11 @@ body.editor-floating-dragging iframe {
 }
 
 .preset-card:hover {
-  border-color: var(--editor-accent);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
-  transform: translateY(-1px);
+  border-color: var(--editor-hover-border, var(--editor-accent));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--editor-accent) 35%, transparent),
+    0 12px 30px rgba(0, 0, 0, 0.36);
+  transform: translateY(-2px);
 }
 
 .preset-card-active {
@@ -2167,261 +2344,35 @@ body.editor-floating-dragging * {
   content: none;
 }
 
-/* ============================================================
-   Page Map workspace — CSS/JS/include mindmap
-   ============================================================ */
-
-.page-map {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  background: #0a0a0a;
-  color: #eaeaea;
-  overflow: hidden;
-}
-
-.page-map.empty {
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 2rem;
-  text-align: center;
-}
-
-.page-map-toolbar {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 18px;
-  padding: 10px 14px;
-  border-bottom: 1px solid #2a2a2a;
-  background: linear-gradient(180deg, #181818 0%, #101010 100%);
-}
-
-.page-map-title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 12rem;
-}
-
-.page-map-kicker {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.page-map-sub {
-  font-size: 0.75rem;
-  color: #9a9a9a;
-}
-
-.page-map-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 auto;
-}
-
-.page-map-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.78rem;
-  color: #b0b0b0;
-}
-
-.page-map-label select {
-  max-width: 260px;
-}
-
-.page-map-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.page-map-stats .stat {
-  font-size: 0.72rem;
-  padding: 3px 8px;
-  border: 1px solid #333;
-  border-radius: 2px;
-  background: #141414;
-  color: #ccc;
-}
-
-.page-map-stats .stat.include { border-color: #5b4a8a; color: #c4b5fd; }
-.page-map-stats .stat.css { border-color: #2d5a45; color: #6ee7b7; }
-.page-map-stats .stat.js { border-color: #5a4a20; color: #fbbf24; }
-
-.page-map-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: row;
-}
-
-.page-map-canvas-wrap {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: auto;
-  background:
-    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(255,255,255,0.03), transparent 70%),
-    #0a0a0a;
-}
-
-.page-map-svg {
-  width: 100%;
-  height: 100%;
-  min-height: 520px;
-  display: block;
-}
-
-.page-map-ring {
-  stroke: #222;
-  stroke-width: 1;
-  stroke-dasharray: 4 6;
-}
-
-.page-map-ring.outer {
-  stroke: #1a1a1a;
-}
-
-.page-map-edge {
-  opacity: 0.85;
-}
-
-.page-map-node-label {
-  fill: #f0f0f0;
-  font-size: 11px;
-  font-family: system-ui, sans-serif;
-  pointer-events: none;
-}
-
-.page-map-node.missing .page-map-node-label {
-  fill: #f88;
-}
-
-.page-map-side {
-  flex: 0 0 280px;
-  width: 280px;
-  border-left: 1px solid #2a2a2a;
-  background: #101010;
-  padding: 12px 14px;
-  overflow-y: auto;
-  font-size: 0.82rem;
-}
-
-.page-map-side h3 {
-  margin: 0.6rem 0 0.4rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #888;
-  font-weight: 700;
-}
-
-.page-map-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.page-map-legend li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #ccc;
-  font-size: 0.78rem;
-}
-
-.page-map-legend .swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid #666;
-  background: #1a1a1a;
-  flex-shrink: 0;
-}
-
-.page-map-legend .swatch.page { border-color: #fff; }
-.page-map-legend .swatch.include { border-color: #c4b5fd; }
-.page-map-legend .swatch.css { border-color: #6ee7b7; }
-.page-map-legend .swatch.js { border-color: #fbbf24; }
-.page-map-legend .swatch.ext { border-color: #38bdf8; }
-.page-map-legend .swatch.missing { border-color: #e05; }
-
-.page-map-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 46vh;
-  overflow-y: auto;
-}
-
+/* Cross-cutting hover polish for list rows / status chrome (not owned by a panel). */
 .page-map-list-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  gap: 0 8px;
-  text-align: left;
-  padding: 6px 8px;
-  border: 1px solid #2a2a2a;
-  border-radius: 2px;
-  background: #141414;
-  color: #e0e0e0;
-  font: inherit;
-  cursor: pointer;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
 }
 
 .page-map-list-item:hover {
-  border-color: #555;
-  background: #1c1c1c;
+  border-color: var(--editor-hover-border, #555);
+  background: var(--editor-hover-bg-strong, #1c1c1c);
+  box-shadow: var(--editor-hover-glow);
+  transform: translateX(1px);
 }
 
-.page-map-list-item.missing {
-  border-color: #622;
-  color: #fbb;
+.editor-statusbar button:hover {
+  background: var(--editor-hover-bg-strong) !important;
+  color: var(--editor-text);
 }
 
-.page-map-list-item .kind {
-  grid-row: 1 / 3;
-  align-self: center;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #888;
-  min-width: 3.5rem;
+/* Site Pages / Insert dock list rows (class-less editor-mini-buttons full-width). */
+.site-pages-panel .editor-mini-button:hover:not(:disabled),
+.insert-dock-panel .editor-mini-button:hover:not(:disabled),
+.inspector-dock-panel .editor-mini-button:hover:not(:disabled) {
+  transform: none;
 }
 
-.page-map-list-item .name {
-  font-weight: 600;
-  font-size: 0.8rem;
-}
-
-.page-map-list-item .path {
-  font-size: 0.68rem;
-  color: #777;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.page-map-hint {
-  margin-top: 1rem;
-  font-size: 0.72rem;
-  color: #777;
-  line-height: 1.45;
-}
-
-.page-map .muted {
-  color: #777;
-  font-style: italic;
+.site-pages-panel .editor-mini-button.editor-mini-button-active:hover,
+.insert-dock-panel button.editor-button:hover {
+  box-shadow: var(--editor-hover-glow);
 }

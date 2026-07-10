@@ -45,16 +45,22 @@ pub fn App() -> Element {
 
     let theme = ThemeState::new();
     let layout = LayoutState::new();
-    // Legacy Blogger site model — kept for panels that still compile against it.
+    // Sample post list for offline/demo preview panels.
     let site_data = use_signal(|| SiteData::default());
     let website = WebsiteState::new();
     let render = RenderState::new(theme, website);
+
+    // Last-saved ThemeConfig TOML (dirty = live config differs). Shared so
+    // File → Open / CLI folder open can seed it from workspace.toml on disk.
+    let original_toml =
+        use_signal(|| toml::to_string_pretty(&(render.current_config)()).unwrap_or_default());
 
     provide_context(theme);
     provide_context(layout);
     provide_context(site_data);
     provide_context(website);
     provide_context(render);
+    provide_context(original_toml);
 
     // `mor_website_dioxus_ui <folder>`: auto-open a project passed on the
     // command line (also how scripted/CI launches point the editor at a site).
@@ -63,7 +69,14 @@ pub fn App() -> Element {
             let path = std::path::PathBuf::from(&arg);
             if path.is_dir() {
                 spawn(async move {
-                    shell_file_actions::open_website_path(website, vfs_map, path).await;
+                    shell_file_actions::open_website_path(
+                        website,
+                        vfs_map,
+                        path,
+                        theme,
+                        original_toml,
+                    )
+                    .await;
                 });
             } else {
                 log::warn!("Ignoring CLI argument (not a folder): {arg}");

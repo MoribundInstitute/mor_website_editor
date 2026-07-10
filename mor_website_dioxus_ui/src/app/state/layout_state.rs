@@ -3,13 +3,14 @@ use std::collections::HashMap;
 
 use crate::ui::workspace::layout::{PreviewTemplateMode, PreviewViewport};
 use crate::app::config_bridge::{CompendiumManifest, PluginState};
+use crate::app::edit_context::SelectionInfo;
 
 /// Normalize a pin/icon key (a dock display name OR id) to its canonical dock id,
 /// so pins keyed from the activity bar (ids) and from preview icons (names) agree.
 pub fn normalize_dock_key(key: &str) -> String {
     match key {
         "Theme Palette" | "theme" => "theme_palette",
-        "Site Pages" | "site" | "site_data" | "Site Data" => "site_pages",
+        "Site Pages" | "Page" | "page" | "site" | "site_data" | "Site Data" => "site_pages",
         "CSS Editor" | "css" => "css_editor",
         "JS Editor" | "js" => "js_editor",
         "Presets" => "presets",
@@ -19,6 +20,8 @@ pub fn normalize_dock_key(key: &str) -> String {
         "JS Builder" => "js_builder",
         "Code Nav" => "code_nav",
         "Static Pages" => "static_pages",
+        "Insert" | "insert_dock" => "insert",
+        "Inspector" | "inspector_dock" | "selection" => "inspector",
         other => other,
     }
     .to_string()
@@ -29,6 +32,8 @@ pub fn normalize_dock_key(key: &str) -> String {
 pub const DOCK_REGISTRY: &[(&str, &str)] = &[
     ("code_nav", "Code Nav"),
     ("static_pages", "Static Pages"),
+    ("insert", "Insert"),
+    ("inspector", "Inspector"),
     ("css_editor", "CSS Editor"),
     ("js_editor", "JS Editor"),
     ("diagnostics", "Diagnostics"),
@@ -36,7 +41,7 @@ pub const DOCK_REGISTRY: &[(&str, &str)] = &[
     ("css_builder", "CSS Builder"),
     ("js_builder", "JS Builder"),
     ("theme_palette", "Theme Palette"),
-    ("site_pages", "Site Pages"),
+    ("site_pages", "Page"),
     ("presets", "Presets"),
 ];
 
@@ -95,7 +100,7 @@ pub struct LayoutState {
     pub preview_template_mode: Signal<PreviewTemplateMode>,
     pub theme_palette_pos: Signal<DockPosition>,
     pub site_pages_pos: Signal<DockPosition>,
-    /// Legacy Blogger dock positions — the docks still compile but are out of
+    /// Advanced/legacy dock positions — the docks still compile but are out of
     /// the registry, so these signals are inert. ponytail: delete with the docks.
     pub site_data_pos: Signal<DockPosition>,
     pub css_editor_pos: Signal<DockPosition>,
@@ -109,9 +114,15 @@ pub struct LayoutState {
     pub widgets_pos: Signal<DockPosition>,
     pub code_nav_pos: Signal<DockPosition>,
     pub static_pages_pos: Signal<DockPosition>,
-    /// Shared TOML/XML toggle for the Code Editor, so the Code Nav dock knows
-    /// which buffer is showing (false = TOML, true = compiled XML).
-    pub code_show_xml: Signal<bool>,
+    /// Google Sites–style Insert dock (content blocks + image pick for rich edit).
+    pub insert_dock_pos: Signal<DockPosition>,
+    /// Selection Inspector — what you clicked (instance fields, nav, component).
+    pub inspector_dock_pos: Signal<DockPosition>,
+    /// Live canvas selection (shared with Inspector dock + ribbon).
+    pub active_canvas_selection: Signal<Option<SelectionInfo>>,
+    /// Shared TOML/CSS toggle for the Code Editor, so the Code Nav dock knows
+    /// which buffer is showing (false = workspace.toml, true = compiled mor-theme.css).
+    pub code_show_compiled: Signal<bool>,
     pub active_workbench_module: Signal<Option<&'static str>>,
     /// One-shot request: open the JS Editor dock on this file (JS workspace
     /// behavior cards set it; the dock consumes it and resets to None).
@@ -141,7 +152,7 @@ pub struct LayoutState {
 }
 
 /// Docks shown on the activity bar in Designer (golden-path) mode.
-const DESIGNER_PINS: &[&str] = &["theme_palette", "site_pages", "presets"];
+const DESIGNER_PINS: &[&str] = &["theme_palette", "site_pages", "insert", "inspector", "presets"];
 /// Extra docks Advanced mode pins beyond the designer set.
 const ADVANCED_EXTRA_PINS: &[&str] = &["css_editor", "js_editor", "diagnostics"];
 
@@ -170,7 +181,10 @@ impl LayoutState {
             widgets_pos: use_signal(|| DockPosition::Hidden),
             code_nav_pos: use_signal(|| DockPosition::Hidden),
             static_pages_pos: use_signal(|| DockPosition::Hidden),
-            code_show_xml: use_signal(|| false),
+            insert_dock_pos: use_signal(|| DockPosition::Hidden),
+            inspector_dock_pos: use_signal(|| DockPosition::Hidden),
+            active_canvas_selection: use_signal(|| None),
+            code_show_compiled: use_signal(|| false),
             active_workbench_module: use_signal(|| None),
             js_editor_open_file: use_signal(|| None),
             css_editor_open_file: use_signal(|| None),
@@ -225,6 +239,10 @@ impl LayoutState {
     }
 
     /// Toggle Designer vs Advanced: reshapes activity-bar pins for golden path.
+    ///
+    /// **Designer (default):** open site → tokens → page content → export CSS.
+    /// Advanced Template Modules / Widget workbenches stay out of the way.
+    /// **Advanced:** code docks + optional starter-kit / legacy module tools.
     pub fn set_designer_mode(&self, enabled: bool) {
         let mut designer_mode = self.designer_mode;
         designer_mode.set(enabled);
@@ -232,6 +250,28 @@ impl LayoutState {
         let mut list = pinned.write();
         if enabled {
             *list = DESIGNER_PINS.iter().map(|s| s.to_string()).collect();
+            // Close Advanced-only docks and bounce out of module workbenches.
+            let mut template_modules_pos = self.template_modules_pos;
+            let mut widgets_pos = self.widgets_pos;
+            let mut center_view = self.center_view;
+            let mut theme_palette_pos = self.theme_palette_pos;
+            let mut site_pages_pos = self.site_pages_pos;
+            let mut active_left_tab = self.active_left_tab;
+            template_modules_pos.set(DockPosition::Hidden);
+            widgets_pos.set(DockPosition::Hidden);
+            let ws = *center_view.read();
+            if matches!(
+                ws,
+                CenterView::ModuleWorkbench | CenterView::WidgetWorkbench
+            ) {
+                center_view.set(CenterView::Preview);
+                theme_palette_pos.set(DockPosition::mor_panel_left);
+                site_pages_pos.set(DockPosition::mor_panel_right);
+            }
+            // Theme Palette may have been open on the Modules accordion.
+            if *active_left_tab.read() == "Modules" {
+                active_left_tab.set("Presets");
+            }
         } else {
             let mut next: Vec<String> = DESIGNER_PINS.iter().map(|s| s.to_string()).collect();
             for extra in ADVANCED_EXTRA_PINS {
@@ -243,6 +283,11 @@ impl LayoutState {
         }
         drop(list);
         self.save_layout_prefs();
+    }
+
+    /// True when the UI should expose Advanced starter kits / module workbench.
+    pub fn advanced_tools_visible(&self) -> bool {
+        !*self.designer_mode.read()
     }
 
     /// Set or clear (None) a dock's activity-bar icon override, then persist.
@@ -295,6 +340,7 @@ impl LayoutState {
             CenterView::Preview | CenterView::Split => {
                 self.theme_palette_pos.set(DockPosition::mor_panel_left);
                 self.site_pages_pos.set(DockPosition::mor_panel_right);
+                // Insert stays user-toggled; don't force-open every Preview visit.
             }
             CenterView::PageMap => {
                 // Asset mindmap: free the center; CSS/JS docks open on node click.
@@ -342,6 +388,8 @@ impl LayoutState {
             "widgets" => self.widgets_pos,
             "code_nav" => self.code_nav_pos,
             "static_pages" => self.static_pages_pos,
+            "insert" | "insert_dock" => self.insert_dock_pos,
+            "inspector" | "inspector_dock" | "selection" => self.inspector_dock_pos,
             _ => return None,
         })
     }
@@ -358,9 +406,24 @@ impl LayoutState {
     /// the Plugin Manager is a floating dialog, everything else prefers the left.
     pub fn preferred_dock_position(&self, dock_id: &str) -> DockPosition {
         match normalize_dock_key(dock_id).as_str() {
-            "site_pages" => DockPosition::mor_panel_right,
+            "site_pages" | "insert" | "inspector" => DockPosition::mor_panel_right,
             "plugin_manager" => DockPosition::Floating,
             _ => DockPosition::mor_panel_left,
+        }
+    }
+
+    /// Remember a canvas selection and surface the Inspector dock.
+    pub fn set_canvas_selection(&mut self, sel: Option<SelectionInfo>) {
+        let open = sel.is_some();
+        self.active_canvas_selection.set(sel);
+        if open {
+            let pos = *self.inspector_dock_pos.peek();
+            if pos == DockPosition::Hidden {
+                self.request_dock("inspector", DockPosition::mor_panel_right);
+            } else {
+                // Re-focus tab if already open in a multi-dock zone.
+                self.request_dock("inspector", pos);
+            }
         }
     }
 

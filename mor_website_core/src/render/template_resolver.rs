@@ -157,9 +157,17 @@ pub const CONTENT_REGISTRY: &[ComponentManifest] = &[
 
 pub const SIDEBAR_LEFT_REGISTRY: &[ComponentManifest] = &[
     ComponentManifest {
+        id: "sidebar_labels",
+        category: ComponentCategory::SidebarLeft,
+        xml_content: include_str!("../template_parts/sidebars/sidebar_labels.xml"),
+        css_deps: &["14-Widgets-Sidebars.css", "15-Archive-Widget.css"],
+        js_deps: &[],
+    },
+    // Legacy alias entry so old workspace.toml (`left_sidebar_variant = "blogger_left"`) still resolves.
+    ComponentManifest {
         id: "blogger_left",
         category: ComponentCategory::SidebarLeft,
-        xml_content: include_str!("../template_parts/sidebars/blogger_left.xml"),
+        xml_content: include_str!("../template_parts/sidebars/sidebar_labels.xml"),
         css_deps: &["14-Widgets-Sidebars.css", "15-Archive-Widget.css"],
         js_deps: &[],
     },

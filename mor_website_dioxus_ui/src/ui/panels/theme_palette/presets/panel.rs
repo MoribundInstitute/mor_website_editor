@@ -565,7 +565,7 @@ pub fn ThemeRestoreDropZone(
     let mut import_text = use_signal(|| "".to_string());
     let mut import_status = use_signal(|| "".to_string());
 
-    let restore_from_xml = move |contents: String, source_label: String| {
+    let restore_from_payload = move |contents: String, source_label: String| {
         import_text.set(contents.clone());
         match extract_and_decode(&contents) {
             Ok(config) => {
@@ -580,39 +580,48 @@ pub fn ThemeRestoreDropZone(
     rsx! {
         div {
             class: if is_hovered() { "restore-workspace-drawer hovered" } else { "restore-workspace-drawer" },
-            ondragover: move |evt| { evt.prevent_default(); is_hovered.set(true); import_status.set("Drop XML file to restore.".to_string()); },
+            ondragover: move |evt| { evt.prevent_default(); is_hovered.set(true); import_status.set("Drop workspace.toml to restore.".to_string()); },
             ondragenter: move |evt| { evt.prevent_default(); is_hovered.set(true); },
             ondragleave: move |_| is_hovered.set(false),
             ondrop: {
-                let mut restore_from_xml = restore_from_xml.clone();
+                let mut restore_from_payload = restore_from_payload.clone();
                 move |evt| {
                     async move {
                         evt.prevent_default(); is_hovered.set(false); import_status.set("Reading file...".to_string());
                         if let Some(file) = evt.files().first() {
                             if let Ok(bytes) = file.read_bytes().await {
-                                restore_from_xml(String::from_utf8_lossy(&bytes).into_owned(), file.name());
+                                restore_from_payload(String::from_utf8_lossy(&bytes).into_owned(), file.name());
                             }
                         }
                     }
                 }
             },
             div { class: "restore-header",
-                h4 { class: "restore-title", "Restore Workspace from Blogger XML" }
+                h4 { class: "restore-title", "Restore Theme from workspace.toml" }
                 button { class: "editor-mini-button", onclick: move |_| on_close.call(()), "Close" }
             }
-            p { class: "restore-copy", "Paste exported Blogger XML, drag and drop an .xml file, or use Choose XML." }
+            p { class: "restore-copy",
+                "Paste a workspace.toml, drop a .toml file, or use Choose File. Legacy theme XML backups with an embedded state marker still work."
+            }
             div { class: "editor-row-stretch",
-                textarea { class: "editor-textarea restore-textarea", placeholder: "Paste Blogger XML here...", value: "{import_text}", oninput: move |evt| { import_text.set(evt.value()); import_status.set(String::new()); } }
+                textarea {
+                    class: "editor-textarea restore-textarea",
+                    placeholder: "Paste workspace.toml here…",
+                    value: "{import_text}",
+                    oninput: move |evt| { import_text.set(evt.value()); import_status.set(String::new()); }
+                }
                 div { class: "restore-button-stack",
-                    label { class: "editor-button restore-button", "Choose XML"
+                    label { class: "editor-button restore-button", "Choose File"
                         input {
-                            r#type: "file", accept: ".xml", style: "display: none;",
+                            r#type: "file",
+                            accept: ".toml,.xml,text/plain",
+                            style: "display: none;",
                             onchange: {
-                                let mut restore_from_xml = restore_from_xml.clone();
+                                let mut restore_from_payload = restore_from_payload.clone();
                                 move |evt| async move {
                                     if let Some(file) = evt.files().first() {
                                         if let Ok(bytes) = file.read_bytes().await {
-                                            restore_from_xml(String::from_utf8_lossy(&bytes).into_owned(), file.name());
+                                            restore_from_payload(String::from_utf8_lossy(&bytes).into_owned(), file.name());
                                         }
                                     }
                                 }
@@ -622,13 +631,16 @@ pub fn ThemeRestoreDropZone(
                     button {
                         class: "editor-button restore-button",
                         onclick: {
-                            let mut restore_from_xml = restore_from_xml.clone();
+                            let mut restore_from_payload = restore_from_payload.clone();
                             move |_| {
-                                if import_text().trim().is_empty() { import_status.set("Paste XML first.".to_string()); return; }
-                                restore_from_xml(import_text(), "pasted XML".to_string());
+                                if import_text().trim().is_empty() {
+                                    import_status.set("Paste workspace.toml first.".to_string());
+                                    return;
+                                }
+                                restore_from_payload(import_text(), "pasted text".to_string());
                             }
                         },
-                        "Rehydrate"
+                        "Restore"
                     }
                 }
             }

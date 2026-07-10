@@ -540,6 +540,30 @@ pub fn SshPublishDialog(mut open: Signal<bool>) -> Element {
                     }
                     button {
                         class: "mor-btn",
+                        disabled: busy(),
+                        title: "Open your system terminal with ssh user@host (not an in-app shell)",
+                        onclick: move |_| {
+                            match cfg_from_fields(
+                                host, user, port, remote_dir, identity_file,
+                                delete_remote, sync_protected,
+                            ) {
+                                Ok(cfg) => match ssh_publish::interactive_ssh_command(&cfg) {
+                                    Ok(cmd) => match ssh_publish::open_system_terminal(Some(&cmd)) {
+                                        Ok(()) => {
+                                            status.set(format!("Opened system terminal: {cmd}"));
+                                            append_log(log, format!("\nSystem terminal → {cmd}\n"));
+                                        }
+                                        Err(e) => status.set(e),
+                                    },
+                                    Err(e) => status.set(e),
+                                },
+                                Err(e) => status.set(e),
+                            }
+                        },
+                        "Open system terminal"
+                    }
+                    button {
+                        class: "mor-btn",
                         disabled: busy() || !project_open,
                         onclick: move |_| {
                             kick_publish(

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Structural layout primitive compiled into Blogger `<b:section>` / `<b:widget>` trees.
+/// Structural layout primitive for starter-kit / module composition.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LayoutBlockType {
@@ -28,7 +28,7 @@ pub struct LayoutBlock {
     /// Stable identifier; used as a suffix for section and widget ids.
     pub id: String,
     pub block_type: LayoutBlockType,
-    /// Widget / section title surfaced in Blogger chrome.
+    /// Widget / section title surfaced in module chrome.
     pub title: String,
     /// Widget ids for WidgetRow blocks (or shared fallback list).
     pub widgets: Vec<String>,
@@ -87,7 +87,7 @@ impl Default for TemplatePackConfig {
             header_variant: "mor_header_baseline".to_string(),
             main_variant: "sidebars".to_string(),
             content_variant: "standard_feed".to_string(),
-            left_sidebar_variant: "blogger_left".to_string(),
+            left_sidebar_variant: "sidebar_labels".to_string(),
             right_sidebar_variant: "toc_right".to_string(),
             footer_variant: "mega".to_string(),
             script_variant: "mor_collapsible_sidebars".to_string(),

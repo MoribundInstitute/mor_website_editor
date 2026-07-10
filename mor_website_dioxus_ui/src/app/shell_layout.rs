@@ -7,7 +7,7 @@ use crate::ui::components::icons::{IconBug, IconCode, IconPalette, IconPlugin, I
 use crate::ui::layout::docks::{
     CssEditorPanel, JsEditorPanel, SitePagesDock, ThemePaletteDock,
     DiagnosticsDock, PluginManagerDock, CssBuilderDock, JsBuilderDock,
-    CodeNavDock, StaticPagesDock,
+    CodeNavDock, StaticPagesDock, InsertDock, InspectorDock,
 };
 use crate::ui::panels::quick_launch_bar::LaunchButton;
 use crate::ui::panels::theme_palette::effects_panel_2::AdvancedGlowWindow;
@@ -134,7 +134,9 @@ pub fn ActivityBar() -> Element {
     // Global Dock Registry
     let docks = [
         ("Theme Palette", "theme_palette", layout.theme_palette_pos, "palette"),
-        ("Site Pages", "site_pages", layout.site_pages_pos, "emoji:🌐"),
+        ("Page", "site_pages", layout.site_pages_pos, "emoji:🌐"),
+        ("Insert", "insert", layout.insert_dock_pos, "emoji:➕"),
+        ("Inspector", "inspector", layout.inspector_dock_pos, "emoji:🔍"),
         ("Code Nav", "code_nav", layout.code_nav_pos, "emoji:🧭"),
         ("Static Pages", "static_pages", layout.static_pages_pos, "emoji:📄"),
         ("CSS Editor", "css_editor", layout.css_editor_pos, "emoji:🖌️"),
@@ -210,6 +212,12 @@ pub fn DockZone(position: DockPosition) -> Element {
     let dock_body = match visible.as_str() {
         "site_pages" => rsx! {
             SitePagesDock {}
+        },
+        "insert" => rsx! {
+            InsertDock {}
+        },
+        "inspector" => rsx! {
+            InspectorDock {}
         },
         "code_nav" => rsx! {
             CodeNavDock {}
@@ -472,6 +480,18 @@ pub fn FloatingWindowManager(props: FloatingWindowManagerProps) -> Element {
             if (layout.site_pages_pos)() == DockPosition::Floating {
                 div { style: "pointer-events: auto;",
                     SitePagesDock {}
+                }
+            }
+
+            if (layout.insert_dock_pos)() == DockPosition::Floating {
+                div { style: "pointer-events: auto;",
+                    InsertDock {}
+                }
+            }
+
+            if (layout.inspector_dock_pos)() == DockPosition::Floating {
+                div { style: "pointer-events: auto;",
+                    InspectorDock {}
                 }
             }
 

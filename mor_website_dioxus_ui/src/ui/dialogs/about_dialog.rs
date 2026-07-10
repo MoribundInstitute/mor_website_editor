@@ -10,7 +10,7 @@ pub fn AboutDialog(mut open: Signal<bool>) -> Element {
             on_close: move |_| open.set(false),
             div { class: "editor-note",
                 p { class: "editor-note-title", "Version 0.1.0" }
-                p { class: "editor-note-body", "Frugal desktop theme engine for Blogger." }
+                p { class: "editor-note-body", "Local desktop editor for regular websites — theme tokens, pages, and mor-theme.css." }
             }
         }
     }

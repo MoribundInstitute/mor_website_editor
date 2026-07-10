@@ -20,6 +20,7 @@ use crate::render::xml_parts::css_generator::render_css_sockets;
 
 pub mod html_modules;
 pub mod page_assets;
+pub mod page_edit;
 pub mod publish_protect;
 
 pub const THEME_CSS_FILENAME: &str = "mor-theme.css";
@@ -347,22 +348,105 @@ pub fn export_starter_page(project: &WebsiteProject, config: &ThemeConfig, title
     Ok(dest)
 }
 
-/// Scaffold a modular PHP + web-component site that speaks the Site Contract
-/// (hooks, tokens, `data-mor-edit` markers). Used by `mwt init --template starter`
-/// and mirrors `examples/mor_starter/`.
+/// Page stack for **File → New Website…** / `mwt init`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NewSitePages {
+    /// PHP pages with shared `includes/header.php` + `footer.php` (recommended).
+    #[default]
+    PhpModular,
+    /// Standalone `.html` pages (no PHP required).
+    StaticHtml,
+}
+
+/// Options for scaffolding a fresh website folder.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewSiteOptions {
+    pub pages: NewSitePages,
+    /// Write `css/site.css` and link it from every page.
+    pub include_site_css: bool,
+    /// Write `components/mor-card.js` (+ optional `js/site.js`) and link them.
+    pub include_js: bool,
+    /// Also write an About page.
+    pub about_page: bool,
+}
+
+impl Default for NewSiteOptions {
+    fn default() -> Self {
+        Self {
+            pages: NewSitePages::PhpModular,
+            include_site_css: true,
+            include_js: true,
+            about_page: true,
+        }
+    }
+}
+
+/// Full starter (PHP + CSS + JS + About). Used by `mwt init --template starter`.
 pub fn scaffold_starter_site(root: &Path, config: &ThemeConfig) -> io::Result<Vec<String>> {
-    std::fs::create_dir_all(root.join("includes"))?;
-    std::fs::create_dir_all(root.join("components"))?;
-    std::fs::create_dir_all(root.join("css"))?;
-    std::fs::create_dir_all(root.join("js"))?;
+    scaffold_new_site(root, config, &NewSiteOptions::default())
+}
+
+/// Scaffold a website folder from dialog / CLI options.
+/// Always writes `workspace.toml` + generated `mor-theme.css`.
+pub fn scaffold_new_site(
+    root: &Path,
+    config: &ThemeConfig,
+    opts: &NewSiteOptions,
+) -> io::Result<Vec<String>> {
+    std::fs::create_dir_all(root)?;
+    if opts.include_site_css {
+        std::fs::create_dir_all(root.join("css"))?;
+    }
+    if opts.include_js {
+        std::fs::create_dir_all(root.join("components"))?;
+        std::fs::create_dir_all(root.join("js"))?;
+    }
+    if matches!(opts.pages, NewSitePages::PhpModular) {
+        std::fs::create_dir_all(root.join("includes"))?;
+    }
 
     let title = escape_attr_min(&config.site.site_title);
     let subtitle = escape_attr_min(&config.site.site_subtitle);
     let footer = escape_attr_min(&config.footer.footer_text);
 
-    // r## so href="#top" and CSS hex colors don't terminate the raw string.
-    let header_php = format!(
-        r##"<?php
+    let site_css_link = if opts.include_site_css {
+        "\n  <link rel=\"stylesheet\" href=\"/css/site.css\" />"
+    } else {
+        ""
+    };
+    let js_links = if opts.include_js {
+        "\n  <script src=\"/components/mor-card.js\" defer></script>\n  <script src=\"/js/site.js\" defer></script>\n  <script src=\"/mor-theme.js\" defer></script>"
+    } else {
+        "\n  <script src=\"/mor-theme.js\" defer></script>"
+    };
+    let about_href = match opts.pages {
+        NewSitePages::PhpModular => "/about.php",
+        NewSitePages::StaticHtml => "/about.html",
+    };
+    let about_nav = if opts.about_page {
+        format!(r#"    <a class="mor-pill" href="{about_href}">About</a>"#)
+    } else {
+        String::new()
+    };
+    let card_block = if opts.include_js {
+        r#"    <mor-card class="mor-card">
+      <span slot="title">Web component</span>
+      <p>This card themes via CSS variables from <code data-edit-target="typography.mono_font_stack">mor-theme.css</code> — no sealed hex colors.</p>
+    </mor-card>
+"#
+    } else {
+        ""
+    };
+
+    let mut files: Vec<(String, String)> = Vec::new();
+    let mut pages: Vec<String> = Vec::new();
+    let mut css_files: Vec<String> = Vec::new();
+    let mut js_files: Vec<String> = Vec::new();
+
+    match opts.pages {
+        NewSitePages::PhpModular => {
+            let header_php = format!(
+                r##"<?php
 // Modular chrome — swap markup freely; keep .mor-* hooks + data-mor-edit markers.
 ?><!doctype html>
 <html lang="en" data-theme="dark" id="top">
@@ -370,10 +454,7 @@ pub fn scaffold_starter_site(root: &Path, config: &ThemeConfig) -> io::Result<Ve
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><?php echo htmlspecialchars($page_title ?? '{title}', ENT_QUOTES, 'UTF-8'); ?></title>
-  <link rel="stylesheet" href="/mor-theme.css" />
-  <link rel="stylesheet" href="/css/site.css" />
-  <script src="/components/mor-card.js" defer></script>
-  <script src="/mor-theme.js" defer></script>
+  <link rel="stylesheet" href="/mor-theme.css" />{site_css_link}{js_links}
 </head>
 <body>
 <header class="main-header mor-topbar" data-edit-target="colors.bg_elevated">
@@ -383,14 +464,13 @@ pub fn scaffold_starter_site(root: &Path, config: &ThemeConfig) -> io::Result<Ve
   </a>
   <nav class="mor-nav" aria-label="Primary">
     <a class="mor-pill" href="/">Home</a>
-    <a class="mor-pill" href="/about.php">About</a>
+{about_nav}
   </nav>
 </header>
 "##
-    );
-
-    let footer_php = format!(
-        r##"<footer class="mor-footer mor-footer-hairline">
+            );
+            let footer_php = format!(
+                r##"<footer class="mor-footer mor-footer-hairline">
   <p>
     <span data-mor-edit="footer.footer_text" data-field-path="footer.footer_text">{footer}</span>
     <span aria-hidden="true">·</span>
@@ -400,10 +480,9 @@ pub fn scaffold_starter_site(root: &Path, config: &ThemeConfig) -> io::Result<Ve
 </body>
 </html>
 "##
-    );
-
-    let index_php = format!(
-        r##"<?php
+            );
+            let index_php = format!(
+                r##"<?php
 $page_title = '{title}';
 require __DIR__ . '/includes/header.php';
 ?>
@@ -412,20 +491,20 @@ require __DIR__ . '/includes/header.php';
     <h1 data-mor-edit="site.site_title" data-field-path="site.site_title" data-edit-target="typography.heading_font_stack">{title}</h1>
     <p data-mor-edit="site.site_subtitle" data-field-path="site.site_subtitle" data-edit-target="typography.body_font_stack">{subtitle}</p>
     <p>Open this folder in <strong>MorWebsite Editor</strong>. Pick a preset, tweak colors, switch the preview to <strong>Edit</strong> mode, and double-click the title.</p>
-    <mor-card class="mor-card">
-      <span slot="title">Web component</span>
-      <p>This card themes via CSS variables from <code data-edit-target="typography.mono_font_stack">mor-theme.css</code> — no sealed hex colors.</p>
-    </mor-card>
-    <h2>Site Contract</h2>
+{card_block}    <h2>Site Contract</h2>
     <p>DRY tokens, WET structure. See <code>docs/SITE_CONTRACT.md</code> in the editor repo.</p>
   </article>
 </main>
 <?php require __DIR__ . '/includes/footer.php'; ?>
 "##
-    );
-
-    let about_php = format!(
-        r##"<?php
+            );
+            files.push(("includes/header.php".into(), header_php));
+            files.push(("includes/footer.php".into(), footer_php));
+            files.push(("index.php".into(), index_php));
+            pages.push("index.php".into());
+            if opts.about_page {
+                let about_php = format!(
+                    r##"<?php
 $page_title = 'About · {title}';
 require __DIR__ . '/includes/header.php';
 ?>
@@ -438,9 +517,99 @@ require __DIR__ . '/includes/header.php';
 </main>
 <?php require __DIR__ . '/includes/footer.php'; ?>
 "##
-    );
+                );
+                files.push(("about.php".into(), about_php));
+                pages.push("about.php".into());
+            }
+        }
+        NewSitePages::StaticHtml => {
+            let head = format!(
+                r##"<!doctype html>
+<html lang="en" data-theme="dark" id="top">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <link rel="stylesheet" href="/mor-theme.css" />{site_css_link}{js_links}
+</head>
+<body>
+<header class="main-header mor-topbar" data-edit-target="colors.bg_elevated">
+  <a class="mor-brand" href="/">
+    <span class="mor-brand-mark">◆</span>
+    <span class="mor-brand-name" data-mor-edit="site.site_title" data-field-path="site.site_title">{title}</span>
+  </a>
+  <nav class="mor-nav" aria-label="Primary">
+    <a class="mor-pill" href="/">Home</a>
+{about_nav}
+  </nav>
+</header>
+"##
+            );
+            let foot = format!(
+                r##"<footer class="mor-footer mor-footer-hairline">
+  <p>
+    <span data-mor-edit="footer.footer_text" data-field-path="footer.footer_text">{footer}</span>
+    <span aria-hidden="true">·</span>
+    <a href="#top">back to top ↑</a>
+  </p>
+</footer>
+</body>
+</html>
+"##
+            );
+            let index_html = format!(
+                r##"{head}
+<main class="canvas-core" style="max-width:720px;margin:2rem auto;padding:0 1.2rem;">
+  <article class="mor-post" data-edit-target="colors.bg_panel">
+    <h1 data-mor-edit="site.site_title" data-field-path="site.site_title" data-edit-target="typography.heading_font_stack">{title}</h1>
+    <p data-mor-edit="site.site_subtitle" data-field-path="site.site_subtitle" data-edit-target="typography.body_font_stack">{subtitle}</p>
+    <p>Open this folder in <strong>MorWebsite Editor</strong>. Pick a preset, tweak colors, and edit pages on disk.</p>
+{card_block}  </article>
+</main>
+{foot}
+"##
+            );
+            files.push(("index.html".into(), index_html));
+            pages.push("index.html".into());
+            if opts.about_page {
+                let about_html = format!(
+                    r##"{head}
+<main class="canvas-core" style="max-width:720px;margin:2rem auto;padding:0 1.2rem;">
+  <article class="mor-post">
+    <h1 data-edit-target="typography.heading_font_stack">About</h1>
+    <p data-edit-target="typography.body_font_stack">A second static page sharing the same theme tokens.</p>
+    <p data-mor-edit="site.site_subtitle" data-field-path="site.site_subtitle">{subtitle}</p>
+  </article>
+</main>
+{foot}
+"##
+                );
+                files.push(("about.html".into(), about_html));
+                pages.push("about.html".into());
+            }
+        }
+    }
 
-    let mor_card_js = r##"/**
+    if opts.include_site_css {
+        let site_css = r##"/* Local site CSS — prefer variables so Mor presets restyle everything. */
+body {
+  margin: 0;
+  background: var(--bg-base, #10161f);
+  color: var(--fg-base, #ddd);
+  font-family: var(--font-body, system-ui, sans-serif);
+}
+.mor-card {
+  --card-bg: var(--bg-panel);
+  --card-fg: var(--fg-base);
+  --card-accent: var(--accent);
+}
+"##;
+        files.push(("css/site.css".into(), site_css.into()));
+        css_files.push("css/site.css".into());
+    }
+
+    if opts.include_js {
+        let mor_card_js = r##"/**
  * <mor-card> — minimal web component that themes from CSS variables only.
  * Site Contract: no hard-coded hex; editor restyles via --card-* / --bg-panel.
  */
@@ -478,74 +647,74 @@ if (!customElements.get("mor-card")) {
   customElements.define("mor-card", MorCard);
 }
 "##;
-
-    let site_css = r##"/* Local site CSS — prefer variables so Mor presets restyle everything. */
-body {
-  margin: 0;
-  background: var(--bg-base, #10161f);
-  color: var(--fg-base, #ddd);
-  font-family: var(--font-body, system-ui, sans-serif);
-}
-.mor-card {
-  --card-bg: var(--bg-panel);
-  --card-fg: var(--fg-base);
-  --card-accent: var(--accent);
-}
+        let site_js = r##"// Site scripts — keep behavior here; theme tokens stay in mor-theme.css.
+document.documentElement.dataset.morReady = "1";
 "##;
+        files.push(("components/mor-card.js".into(), mor_card_js.into()));
+        files.push(("js/site.js".into(), site_js.into()));
+        js_files.push("components/mor-card.js".into());
+        js_files.push("js/site.js".into());
+    }
 
-    let readme = r##"# Mor starter site
+    let stack_label = match opts.pages {
+        NewSitePages::PhpModular => "PHP (modular includes)",
+        NewSitePages::StaticHtml => "Static HTML",
+    };
+    let readme = format!(
+        r##"# {title}
 
-Modular PHP + optional web component, wired for MorWebsite Editor.
+Scaffolded with MorWebsite Editor ({stack_label}).
 
 ## Open in the editor
 
-1. Launch MorWebsite Editor (`cargo run -p mor_website_dioxus_ui`).
-2. **File → Open Website Folder…** and pick this directory.
-3. Left dock → **Presets** (or Theme Palette) → load a look.
-4. Preview mode → **Edit** → double-click the site title.
-5. **File → Export mor-theme.css**.
+1. **File → Open Website Folder…** and pick this directory (or it may already be open).
+2. Left dock → **Presets** / Theme Palette → load a look.
+3. **File → Save Theme to Site** writes `workspace.toml` + `mor-theme.css`.
 
 ## Layout
 
-- `includes/header.php` / `footer.php` — shared chrome (WET pages, DRY includes)
-- `components/mor-card.js` — themable custom element
-- `css/site.css` — local rules using CSS variables
-- `workspace.toml` — editor ThemeConfig
-- `mor-theme.css` — generated on export / `mwt build`
-
+- Pages: {pages_list}
+- `workspace.toml` — editor theme tokens
+- `mor-theme.css` — generated stylesheet
+{extra_layout}
 See `docs/SITE_CONTRACT.md` in the MorWebsite Editor repo.
-"##;
-
-    let files: Vec<(&str, String)> = vec![
-        ("includes/header.php", header_php),
-        ("includes/footer.php", footer_php),
-        ("index.php", index_php),
-        ("about.php", about_php),
-        ("components/mor-card.js", mor_card_js.to_string()),
-        ("css/site.css", site_css.to_string()),
-        ("README.md", readme.to_string()),
-        (
-            "workspace.toml",
-            toml::to_string_pretty(config).unwrap_or_default(),
-        ),
-    ];
+"##,
+        pages_list = pages.join(", "),
+        extra_layout = {
+            let mut lines = String::new();
+            if matches!(opts.pages, NewSitePages::PhpModular) {
+                lines.push_str("- `includes/header.php` / `footer.php` — shared chrome\n");
+            }
+            if opts.include_site_css {
+                lines.push_str("- `css/site.css` — local rules using CSS variables\n");
+            }
+            if opts.include_js {
+                lines.push_str("- `components/mor-card.js`, `js/site.js` — site JavaScript\n");
+            }
+            lines
+        }
+    );
+    files.push(("README.md".into(), readme));
+    files.push((
+        "workspace.toml".into(),
+        toml::to_string_pretty(config).unwrap_or_default(),
+    ));
 
     let mut written = Vec::new();
     for (rel, content) in files {
-        let path = root.join(rel);
+        let path = root.join(&rel);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
         std::fs::write(&path, content)?;
-        written.push(rel.to_string());
+        written.push(rel);
     }
 
-    // Theme CSS so the folder is previewable before first GUI export.
     let project = WebsiteProject {
         root: root.to_path_buf(),
-        pages: vec!["index.php".into(), "about.php".into()],
-        css_files: vec!["css/site.css".into()],
-        js_files: vec!["components/mor-card.js".into()],
+        pages,
+        css_files,
+        js_files,
     };
     export_theme_bundle(&project, config)?;
     written.push(THEME_CSS_FILENAME.into());
@@ -927,6 +1096,27 @@ mod tests {
         assert!(index.contains("mor-card"));
         assert!(dir.join("includes/header.php").exists());
         assert!(dir.join("components/mor-card.js").exists());
+        assert!(dir.join("workspace.toml").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn scaffold_static_html_minimal() {
+        let dir = std::env::temp_dir().join(format!("mor_scaffold_html_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let config = default_theme_config();
+        let opts = NewSiteOptions {
+            pages: NewSitePages::StaticHtml,
+            include_site_css: true,
+            include_js: false,
+            about_page: false,
+        };
+        let written = scaffold_new_site(&dir, &config, &opts).unwrap();
+        assert!(written.iter().any(|f| f == "index.html"));
+        assert!(!written.iter().any(|f| f == "about.html"));
+        assert!(!dir.join("includes").exists());
+        assert!(!dir.join("components/mor-card.js").exists());
+        assert!(dir.join("css/site.css").exists());
         assert!(dir.join("workspace.toml").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }

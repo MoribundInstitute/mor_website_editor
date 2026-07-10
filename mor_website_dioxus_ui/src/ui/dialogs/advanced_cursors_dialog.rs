@@ -40,7 +40,7 @@ fn extract_url(s: &str) -> String {
     String::new()
 }
 
-/// Every cursor slot a Blogger reader can hit: (label, keyword fallback,
+/// Every cursor slot a site visitor can hit: (label, keyword fallback,
 /// what it applies to). Index 0 is the default arrow (ThemeConfig.cursor_style);
 /// the rest live in CursorSetConfig.
 const SLOTS: &[(&str, &str, &str)] = &[

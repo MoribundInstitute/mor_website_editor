@@ -65,16 +65,14 @@ pub fn PreviewCanvas(
     preview_width: Signal<u32>,
     preview_html: String,
     #[props(default)] xray_active: Option<Signal<bool>>,
-    /// Edit mode (Browse | Inspect | Edit): outlines + selection ride
-    /// `xray_active`; destructive-ish gestures (text dblclick, widget drag,
-    /// SVG drop, icon shift-click) additionally require this.
+    /// Edit mode: outlines + selection ride `xray_active`; mutating gestures
+    /// (text dblclick, widget drag, SVG drop, icon shift-click) need this too.
     #[props(default)] edit_active: Option<Signal<bool>>,
     #[props(default)] on_navigate: Option<EventHandler<String>>,
     #[props(default)] on_select: Option<EventHandler<String>>,
-    /// X-Ray click on a node with no marker anywhere up its chain: DOM facts
-    /// (tag/classes/href/nav indices) — classification in Rust (edit_context).
+    /// Click on a node with no marker: DOM facts for Inspector classification.
     #[props(default)] on_select_dom: Option<EventHandler<crate::app::edit_context::DomSelectFacts>>,
-    /// Last analyzed selection, rendered as the inspect chip overlay.
+    /// Last analyzed selection, rendered as a compact chip (not an X-Ray wash).
     #[props(default)] active_selection: Option<Signal<Option<SelectionInfo>>>,
     #[props(default)] on_icon_edit: Option<EventHandler<String>>,
     #[props(default)] on_icon_context_menu: Option<EventHandler<ContextMenuPayload>>,
@@ -84,6 +82,10 @@ pub fn PreviewCanvas(
     #[props(default)] on_move_widget: Option<EventHandler<(String, String)>>,
     #[props(default)] on_toggle_dark_mode: Option<EventHandler<()>>,
     #[props(default)] on_drop_svg: Option<EventHandler<(String, String)>>,
+    /// Transient status (drop hints, etc.) — parent usually forwards to the status bar.
+    #[props(default)] on_status: Option<EventHandler<String>>,
+    /// Active theme preset label shown on the ruler (how the site is styled).
+    #[props(default)] preset_label: Option<String>,
 ) -> Element {
     if let Some(xray_signal) = xray_active {
         use_effect(move || {
@@ -122,12 +124,29 @@ pub fn PreviewCanvas(
     let mut drag_start = use_signal(|| (0.0_f64, 0u32));
 
     let xray_on = xray_active.map(|s| s()).unwrap_or(false);
+    let edit_on = edit_active.map(|s| s()).unwrap_or(false);
     let current_viewport = preview_viewport();
     let viewport_label = current_viewport.label();
-    let viewport_meta = if current_viewport == PreviewViewport::Fit {
-        "Fit · available width".to_string()
+    let look = if edit_on {
+        "Edit"
+    } else if xray_on {
+        "Select"
     } else {
-        format!("{} · {}px wide", viewport_label, preview_width())
+        "View · as published"
+    };
+    let preset_bit = preset_label
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| format!(" · preset {s}"))
+        .unwrap_or_default();
+    let viewport_meta = if current_viewport == PreviewViewport::Fit {
+        format!("Fit · available width · {look}{preset_bit}")
+    } else {
+        format!(
+            "{} · {}px · {look}{preset_bit}",
+            viewport_label,
+            preview_width()
+        )
     };
 
     let device_class = if current_viewport == PreviewViewport::Fit {
@@ -149,26 +168,14 @@ pub fn PreviewCanvas(
         div {
             class: "preview-canvas",
 
-            // Inspect chip: what the last X-Ray click resolved to — bound
-            // config path, token surface, or "no binding" (inspect only).
+            // Compact selection chip — no X-Ray legend overlay on the page.
             if xray_on {
                 if let Some(sel) = active_selection.and_then(|s| s()) {
                     div {
                         class: if sel.context == EditContext::CodeOnly { "preview-selection-chip preview-selection-chip-unbound" } else { "preview-selection-chip" },
+                        title: "Selected in the preview — open Inspector (Alt+X) for fields",
                         "{sel.label}"
                     }
-                }
-            }
-
-            if xray_on {
-                div {
-                    class: "preview-xray-legend",
-                    span { class: "preview-xray-legend-title", "X-Ray" }
-                    span { class: "preview-xray-chip preview-xray-chip-layout", "Layout" }
-                    span { class: "preview-xray-chip preview-xray-chip-widget", "Widget · drag" }
-                    span { class: "preview-xray-chip preview-xray-chip-text", "Text · dbl-click" }
-                    span { class: "preview-xray-chip preview-xray-chip-token", "Theme token" }
-                    span { class: "preview-xray-chip preview-xray-chip-icon", "Icon · shift-click" }
                 }
             }
 
@@ -336,38 +343,46 @@ pub fn PreviewCanvas(
                                                 if (el.hasAttribute('data-block-id')) el.draggable = true;
                                             });
                                         }
+                                        // Light edit chrome only — soft hover, no region washes.
                                         const XRAY_CSS = `
-html.mor-xray-on .main-header{outline:2px solid #f59e0b;outline-offset:-2px;background:rgba(245,158,11,.07)!important}
-html.mor-xray-on .mor-workspace{outline:2px solid #6366f1;outline-offset:-2px;background:rgba(99,102,241,.05)!important}
-html.mor-xray-on .mor-panel.panel-left{outline:2px solid #10b981;outline-offset:-2px;background:rgba(16,185,129,.07)!important}
-html.mor-xray-on .mor-panel.panel-right{outline:2px solid #14b8a6;outline-offset:-2px;background:rgba(20,184,166,.07)!important}
-html.mor-xray-on .canvas-core{outline:2px solid #8b5cf6;outline-offset:-2px;background:rgba(139,92,246,.06)!important}
-html.mor-xray-on .mor-footer{outline:2px solid #eab308;outline-offset:-2px;background:rgba(234,179,8,.06)!important}
-html.mor-xray-on .main-header::before,html.mor-xray-on .mor-workspace::before,html.mor-xray-on .mor-panel.panel-left::before,html.mor-xray-on .mor-panel.panel-right::before,html.mor-xray-on .canvas-core::before,html.mor-xray-on .mor-footer::before{position:absolute;top:4px;left:4px;z-index:10000;padding:2px 6px;border-radius:3px;font:600 10px/1.3 ui-monospace,monospace;letter-spacing:.03em;text-transform:uppercase;pointer-events:none}
-html.mor-xray-on .main-header::before{content:"Header";background:#f59e0b;color:#451a03}
-html.mor-xray-on .mor-workspace::before{content:"Workspace";background:#6366f1;color:#1e1b4b}
-html.mor-xray-on .mor-panel.panel-left::before{content:"Left sidebar";background:#10b981;color:#052e16}
-html.mor-xray-on .mor-panel.panel-right::before{content:"Right sidebar";background:#14b8a6;color:#042f2e}
-html.mor-xray-on .canvas-core::before{content:"Main content";background:#8b5cf6;color:#2e1065}
-html.mor-xray-on .mor-footer::before{content:"Footer";background:#eab308;color:#422006}
-html.mor-xray-on .main-header,html.mor-xray-on .mor-workspace,html.mor-xray-on .mor-panel,html.mor-xray-on .canvas-core,html.mor-xray-on .mor-footer{position:relative}
-html.mor-xray-on [data-block-id]{outline:2px solid #22c55e!important;outline-offset:2px;background:rgba(34,197,94,.09)!important;position:relative;cursor:grab}
-html.mor-xray-on [data-block-id]::before{content:attr(data-xray-widget);position:absolute;top:0;right:0;z-index:10001;padding:2px 6px;font:600 10px/1.3 ui-monospace,monospace;background:#22c55e;color:#052e16;pointer-events:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-html.mor-xray-on [data-field-path]{outline:2px dashed #3b82f6!important;outline-offset:2px;background:rgba(59,130,246,.08)!important;position:relative;cursor:text}
-html.mor-xray-on [data-field-path]::after{content:attr(data-xray-hint);position:absolute;bottom:calc(100% + 4px);left:0;z-index:10002;padding:2px 6px;border-radius:3px;font:10px/1.3 ui-monospace,monospace;background:#1d4ed8;color:#eff6ff;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .12s ease}
-html.mor-xray-on [data-field-path]:hover::after{opacity:1}
-html.mor-xray-on [data-edit-target^="icons."]{outline:2px solid #f97316!important;outline-offset:2px;box-shadow:0 0 0 3px rgba(249,115,22,.18)!important;position:relative}
-html.mor-xray-on [data-edit-target^="icons."]::after{content:attr(data-xray-hint);position:absolute;bottom:calc(100% + 4px);left:0;z-index:10002;padding:2px 6px;border-radius:3px;font:10px/1.3 ui-monospace,monospace;background:#c2410c;color:#fff7ed;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .12s ease}
-html.mor-xray-on [data-edit-target^="icons."]:hover::after{opacity:1}
-html.mor-xray-on [data-edit-target]:not([data-field-path]):not([data-block-id]):not([data-edit-target^="icons."]){outline:2px dotted #a855f7!important;outline-offset:2px;background:rgba(168,85,247,.06)!important;position:relative}
-html.mor-xray-on [data-edit-target]:not([data-field-path]):not([data-block-id]):not([data-edit-target^="icons."])::after{content:attr(data-xray-hint);position:absolute;bottom:calc(100% + 4px);left:0;z-index:10002;padding:2px 6px;border-radius:3px;font:10px/1.3 ui-monospace,monospace;background:#7e22ce;color:#faf5ff;pointer-events:none;white-space:nowrap;max-width:min(280px,90vw);overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .12s ease}
-html.mor-xray-on [data-edit-target]:not([data-field-path]):not([data-block-id]):not([data-edit-target^="icons."]):hover::after{opacity:1}
-html.mor-xray-on .mor-xray-hover{outline:1px solid rgba(40,149,240,.85)!important;outline-offset:1px;cursor:pointer}
-/* Webflow-like selection chrome */
-html.mor-xray-on .mor-canvas-selected{outline:2px solid #2895f0!important;outline-offset:2px!important;position:relative!important;z-index:50}
+html.mor-xray-on .mor-xray-hover{outline:2px solid rgba(40,149,240,.88)!important;outline-offset:2px;cursor:pointer;box-shadow:0 0 0 3px rgba(40,149,240,.14);transition:outline-color .12s ease,box-shadow .12s ease}
+html.mor-xray-on [data-block-id]{cursor:grab;transition:outline-color .12s ease,box-shadow .12s ease}
+html.mor-xray-on [data-block-id]:hover{outline:1.5px dashed rgba(34,197,94,.75);outline-offset:2px}
+html.mor-xray-on [data-field-path],html.mor-xray-on [data-mor-edit]{cursor:text;transition:outline-color .12s ease,box-shadow .12s ease}
+html.mor-xray-on [data-field-path]:hover,html.mor-xray-on [data-mor-edit]:hover{outline:1.5px dashed rgba(40,149,240,.8);outline-offset:2px;box-shadow:0 0 0 3px rgba(40,149,240,.1)}
+html.mor-xray-on a:hover,html.mor-xray-on button:hover,html.mor-xray-on .btn-primary:hover,html.mor-xray-on .btn:hover{outline:1.5px solid rgba(40,149,240,.55);outline-offset:2px}
+html.mor-xray-on img:hover{outline:1.5px solid rgba(40,149,240,.55);outline-offset:2px}
+/* Selection: thin outline + floating label only (no background tint) */
+html.mor-xray-on .mor-canvas-selected{outline:2px solid #2895f0!important;outline-offset:2px!important;position:relative!important;z-index:50;background:transparent!important;box-shadow:0 0 0 3px rgba(40,149,240,.18)!important}
 html.mor-xray-on .mor-canvas-selected::before{content:attr(data-mor-sel-label);position:absolute;top:-22px;left:-2px;z-index:100050;padding:3px 7px;border-radius:2px 2px 0 0;font:600 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.02em;background:#2895f0;color:#fff;pointer-events:none;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-html.mor-xray-on .mor-canvas-editing{outline:2px solid #146ef5!important;outline-offset:2px!important;caret-color:#146ef5;min-width:1ch}
-html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " · editing";background:#146ef5}`;
+html.mor-xray-on .mor-canvas-editing{outline:2px solid #146ef5!important;outline-offset:2px!important;caret-color:#146ef5;min-width:1ch;background:transparent!important;box-shadow:0 0 0 3px rgba(20,110,245,.2)!important}
+html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " · editing";background:#146ef5}
+/* Rich-text floating bar — readable groups, clear labels */
+#mor-rte-bar{position:fixed;z-index:2147483000;display:flex;flex-direction:column;gap:0;min-width:min(420px,92vw);max-width:min(560px,96vw);padding:0;border-radius:12px;background:#fff;border:1px solid #dadce0;box-shadow:0 4px 16px rgba(32,33,36,.18),0 1px 3px rgba(60,64,67,.12);font:13px/1.3 system-ui,-apple-system,Segoe UI,sans-serif;color:#202124;user-select:none}
+#mor-rte-bar .mor-rte-top{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:8px 10px 6px}
+#mor-rte-bar .mor-rte-hint{padding:0 12px 8px;font:11px/1.35 system-ui,sans-serif;color:#5f6368;border-top:1px solid #f1f3f4}
+#mor-rte-bar .mor-rte-group{display:inline-flex;align-items:center;gap:2px}
+#mor-rte-bar button{appearance:none;border:1px solid transparent;background:transparent;color:#3c4043;min-width:32px;height:32px;padding:0 8px;border-radius:8px;cursor:pointer;font:600 12px/1 system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+#mor-rte-bar button:hover{background:#f1f3f4;border-color:#e8eaed}
+#mor-rte-bar button:focus-visible{outline:2px solid #1a73e8;outline-offset:1px}
+#mor-rte-bar button.is-on{background:#e8f0fe;color:#1967d2;border-color:#d2e3fc}
+#mor-rte-bar button.mor-rte-primary{background:#1a73e8;color:#fff;border-color:#1a73e8;font-weight:600}
+#mor-rte-bar button.mor-rte-primary:hover{background:#1765cc;border-color:#1765cc}
+#mor-rte-bar button.mor-rte-quiet{color:#5f6368;font-weight:500}
+#mor-rte-bar .mor-rte-sep{width:1px;height:22px;background:#dadce0;margin:0 4px;flex-shrink:0}
+#mor-rte-bar select{height:32px;border:1px solid #dadce0;border-radius:8px;background:#fff;font:12px system-ui;color:#202124;max-width:128px;padding:0 8px;cursor:pointer}
+#mor-rte-bar select:hover{border-color:#bdc1c6}
+#mor-rte-bar .mor-rte-link-row{display:none;width:100%;gap:8px;padding:8px 10px 10px;align-items:center;flex-wrap:wrap;border-top:1px solid #f1f3f4;background:#f8f9fa;border-radius:0 0 12px 12px;box-sizing:border-box}
+#mor-rte-bar.mor-rte-link-open .mor-rte-link-row{display:flex}
+#mor-rte-bar .mor-rte-link-row input[type=url],#mor-rte-bar .mor-rte-link-row input[type=text]{flex:1;min-width:140px;height:32px;border:1px solid #dadce0;border-radius:8px;padding:0 10px;font:13px system-ui;background:#fff;box-sizing:border-box}
+#mor-rte-bar .mor-rte-link-row input:focus{border-color:#1a73e8;outline:none;box-shadow:0 0 0 2px rgba(26,115,232,.2)}
+#mor-rte-bar .mor-rte-link-label{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;font:11px/1.2 system-ui;color:#5f6368;font-weight:600}
+#mor-rte-bar .mor-rte-link-check{display:flex;align-items:center;gap:6px;font:12px system-ui;color:#3c4043;white-space:nowrap;cursor:pointer;font-weight:500}
+#mor-rte-bar .mor-rte-label{font:10px/1 system-ui;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#80868b;margin:0 2px 0 4px}
+.mor-canvas-editing{background:rgba(26,115,232,.04)!important;border-radius:2px}
+.mor-canvas-editing a{text-decoration:underline;color:#1967d2}
+.mor-drop-hover{outline:2px dashed #146ef5!important;outline-offset:3px;background:rgba(20,110,245,.06)!important}
+.mor-insert-row,.mor-insert-card{min-height:2rem}`
 
                                         function widgetRegion(el) {
                                             if (el.closest('.panel-left')) return 'Left';
@@ -445,11 +460,496 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                             });
                                             const s = doc.createElement('style');
                                             s.id = 'mor-edit-style';
-                                            s.textContent = `html:not(.mor-xray-on) [data-field-path]:hover,[data-mor-edit]:hover{outline:2px dashed #3b82f6;cursor:text} [data-block-id]{cursor:grab;position:relative} .dragging{opacity:0.5} .drag-over{border-top:4px solid #3b82f6}`;
+                                            // Soft edit affordances — no region paints; site stays looking published.
+                                            s.textContent = `html.mor-xray-on [data-field-path]:hover,html.mor-xray-on [data-mor-edit]:hover{outline:1.5px dashed rgba(40,149,240,.7);outline-offset:2px;cursor:text} [data-block-id],[data-mor-block]{cursor:grab;position:relative} .dragging{opacity:0.5} .drag-over,.mor-drop-hover{outline:2px dashed #146ef5;outline-offset:2px} .mor-canvas-editing{cursor:text!important}`;
                                             doc.head.appendChild(s);
                                             doc.querySelectorAll('[data-block-id]').forEach(el => el.draggable = true);
 
-                                            const TEXT_EDIT = 'h1,h2,h3,h4,h5,h6,p,span,a,li,label,button,td,th,figcaption,blockquote,strong,em,small';
+                                            const TEXT_EDIT = 'h1,h2,h3,h4,h5,h6,p,span,a,li,label,button,td,th,figcaption,blockquote,strong,em,small,div';
+                                            let contentDragEl = null;
+
+                                            function contentHosts(doc) {
+                                                const list = doc.querySelectorAll('.canvas-core, main, article, .content, #content');
+                                                return list.length ? Array.from(list) : [doc.body];
+                                            }
+                                            function markContentBlocks(doc) {
+                                                contentHosts(doc).forEach(host => {
+                                                    Array.from(host.children || []).forEach(el => {
+                                                        if (!el || el.nodeType !== 1) return;
+                                                        if (/^(SCRIPT|STYLE|LINK|NOSCRIPT|META)$/i.test(el.tagName)) return;
+                                                        if (el.id === 'mor-rte-bar') return;
+                                                        el.setAttribute('data-mor-block', '1');
+                                                        if (!el.getAttribute('data-block-id')) el.draggable = true;
+                                                    });
+                                                });
+                                            }
+                                            markContentBlocks(doc);
+
+                                            // ── Rich text toolbar (readable groups + Done) ────────
+                                            function hideRichToolbar() {
+                                                const b = doc.getElementById('mor-rte-bar');
+                                                if (b) {
+                                                    if (b._cleanup) try { b._cleanup(); } catch (_) {}
+                                                    b.remove();
+                                                }
+                                            }
+                                            function placeRichToolbar(bar, el) {
+                                                const r = el.getBoundingClientRect();
+                                                const vw = doc.defaultView.innerWidth || 800;
+                                                const vh = doc.defaultView.innerHeight || 600;
+                                                const bw = bar.offsetWidth || 440;
+                                                const bh = bar.offsetHeight || 88;
+                                                let top = r.top - bh - 10;
+                                                if (top < 8) top = Math.min(r.bottom + 10, vh - bh - 8);
+                                                let left = Math.max(8, Math.min(r.left + (r.width / 2) - (bw / 2), vw - bw - 8));
+                                                bar.style.top = Math.max(8, top) + 'px';
+                                                bar.style.left = left + 'px';
+                                            }
+                                            function finishRichEdit(el, save) {
+                                                if (!el || el.contentEditable !== 'true') return;
+                                                const bar = doc.getElementById('mor-rte-bar');
+                                                if (bar && bar._cleanup) try { bar._cleanup(); } catch (_) {}
+                                                hideRichToolbar();
+                                                window.__morRichActive = null;
+                                                const beforeText = el.getAttribute('data-mor-edit-before') || '';
+                                                const beforeHtml = el.getAttribute('data-mor-edit-before-html') || '';
+                                                if (!save) {
+                                                    if (beforeHtml != null) el.innerHTML = beforeHtml;
+                                                    else if (beforeText != null) el.innerText = beforeText;
+                                                }
+                                                el.contentEditable = 'false';
+                                                el.classList.remove('mor-canvas-editing');
+                                                el.removeAttribute('data-mor-edit-before');
+                                                el.removeAttribute('data-mor-edit-before-html');
+                                                if (!save) return;
+                                                const afterText = el.innerText;
+                                                const afterHtml = el.innerHTML;
+                                                const path = el.getAttribute('data-field-path') || el.getAttribute('data-mor-edit');
+                                                if (path) {
+                                                    dioxus.send({action: "UPDATE_VALUE", target: path, value: afterText});
+                                                } else {
+                                                    const useHtml = beforeHtml !== afterHtml
+                                                        && (beforeHtml.includes('<') || afterHtml.includes('<'));
+                                                    const oldT = useHtml ? beforeHtml : beforeText;
+                                                    const newT = useHtml ? afterHtml : afterText;
+                                                    if (oldT !== newT) {
+                                                        dioxus.send({
+                                                            action: "PAGE_TEXT_EDIT",
+                                                            old_text: oldT,
+                                                            new_text: newT,
+                                                            tag: (el.tagName || '').toLowerCase(),
+                                                            rich: useHtml
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            function showRichToolbar(el) {
+                                                hideRichToolbar();
+                                                const bar = doc.createElement('div');
+                                                bar.id = 'mor-rte-bar';
+                                                bar.setAttribute('contenteditable', 'false');
+                                                bar.setAttribute('role', 'toolbar');
+                                                bar.setAttribute('aria-label', 'Text formatting');
+                                                bar.innerHTML = `
+                                                  <div class="mor-rte-top">
+                                                    <span class="mor-rte-label">Style</span>
+                                                    <select data-block title="Paragraph style" aria-label="Paragraph style">
+                                                      <option value="p">Paragraph</option>
+                                                      <option value="h1">Heading 1</option>
+                                                      <option value="h2">Heading 2</option>
+                                                      <option value="h3">Heading 3</option>
+                                                      <option value="blockquote">Quote</option>
+                                                    </select>
+                                                    <span class="mor-rte-sep"></span>
+                                                    <div class="mor-rte-group" role="group" aria-label="Emphasis">
+                                                      <button type="button" data-cmd="bold" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
+                                                      <button type="button" data-cmd="italic" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>
+                                                      <button type="button" data-cmd="underline" title="Underline (Ctrl+U)" aria-label="Underline"><u>U</u></button>
+                                                      <button type="button" data-cmd="strikeThrough" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+                                                    </div>
+                                                    <span class="mor-rte-sep"></span>
+                                                    <div class="mor-rte-group" role="group" aria-label="Lists">
+                                                      <button type="button" data-cmd="insertUnorderedList" title="Bullet list" aria-label="Bullet list">• List</button>
+                                                      <button type="button" data-cmd="insertOrderedList" title="Numbered list" aria-label="Numbered list">1. List</button>
+                                                    </div>
+                                                    <span class="mor-rte-sep"></span>
+                                                    <div class="mor-rte-group" role="group" aria-label="Link">
+                                                      <button type="button" data-cmd="createLink" title="Insert or edit link (Ctrl+K)" aria-label="Link">Link</button>
+                                                      <button type="button" data-cmd="unlink" title="Remove link" aria-label="Remove link" class="mor-rte-quiet">Unlink</button>
+                                                    </div>
+                                                    <span class="mor-rte-sep"></span>
+                                                    <div class="mor-rte-group" role="group" aria-label="History">
+                                                      <button type="button" data-cmd="undo" title="Undo" aria-label="Undo">Undo</button>
+                                                      <button type="button" data-cmd="redo" title="Redo" aria-label="Redo">Redo</button>
+                                                      <button type="button" data-cmd="removeFormat" title="Clear formatting" aria-label="Clear formatting" class="mor-rte-quiet">Clear</button>
+                                                    </div>
+                                                    <span class="mor-rte-sep"></span>
+                                                    <button type="button" data-rte-done class="mor-rte-primary" title="Save and close (Enter on single-line)">Done</button>
+                                                    <button type="button" data-rte-cancel class="mor-rte-quiet" title="Discard changes (Esc)">Cancel</button>
+                                                  </div>
+                                                  <div class="mor-rte-link-row">
+                                                    <label class="mor-rte-link-label">Link URL
+                                                      <input type="text" data-link-url placeholder="/page.php or https://example.com" autocomplete="off" spellcheck="false" />
+                                                    </label>
+                                                    <label class="mor-rte-link-check" title="Open in a new browser tab">
+                                                      <input type="checkbox" data-link-blank /> New tab
+                                                    </label>
+                                                    <button type="button" data-link-apply class="mor-rte-primary">Apply link</button>
+                                                    <button type="button" data-link-cancel class="mor-rte-quiet">Close</button>
+                                                  </div>
+                                                  <div class="mor-rte-hint">Editing this block · select text to format · <strong>Done</strong> saves · <strong>Esc</strong> cancels</div>`;
+                                                doc.body.appendChild(bar);
+                                                placeRichToolbar(bar, el);
+                                                // Keep text selection when clicking toolbar chrome
+                                                bar.addEventListener('mousedown', e => {
+                                                    if (e.target.closest('input,select,textarea,label')) return;
+                                                    e.preventDefault();
+                                                });
+                                                const run = (cmd, val) => {
+                                                    el.focus();
+                                                    try {
+                                                        if (cmd === 'formatBlock') {
+                                                            const tag = (val || 'p').replace(/[<>]/g, '');
+                                                            try { doc.execCommand('formatBlock', false, '<' + tag + '>'); }
+                                                            catch (_) { doc.execCommand('formatBlock', false, tag); }
+                                                        } else {
+                                                            doc.execCommand(cmd, false, val || null);
+                                                        }
+                                                    } catch (_) {}
+                                                    syncOnState();
+                                                    placeRichToolbar(bar, el);
+                                                };
+                                                const linkAnchorFromSel = () => {
+                                                    try {
+                                                        const sel = doc.getSelection();
+                                                        if (!sel || !sel.anchorNode) return null;
+                                                        const n = sel.anchorNode;
+                                                        return n.nodeType === 1
+                                                            ? n.closest('a')
+                                                            : (n.parentElement && n.parentElement.closest('a'));
+                                                    } catch (_) { return null; }
+                                                };
+                                                const openLinkPanel = () => {
+                                                    bar.classList.add('mor-rte-link-open');
+                                                    const inp = bar.querySelector('[data-link-url]');
+                                                    const blank = bar.querySelector('[data-link-blank]');
+                                                    let href = '';
+                                                    const a = linkAnchorFromSel();
+                                                    if (a && a.getAttribute('href')) href = a.getAttribute('href');
+                                                    if (blank) blank.checked = !!(a && a.getAttribute('target') === '_blank');
+                                                    if (inp) {
+                                                        inp.value = href || 'https://';
+                                                        inp.focus();
+                                                        inp.select();
+                                                    }
+                                                    placeRichToolbar(bar, el);
+                                                };
+                                                const syncOnState = () => {
+                                                    bar.querySelectorAll('[data-cmd]').forEach(btn => {
+                                                        const c = btn.getAttribute('data-cmd');
+                                                        if (!c || c === 'createLink' || c === 'unlink' || c === 'removeFormat' || c === 'undo' || c === 'redo') return;
+                                                        try {
+                                                            btn.classList.toggle('is-on', !!doc.queryCommandState(c));
+                                                            btn.setAttribute('aria-pressed', btn.classList.contains('is-on') ? 'true' : 'false');
+                                                        } catch (_) {}
+                                                    });
+                                                    const blockSel = bar.querySelector('[data-block]');
+                                                    if (blockSel) {
+                                                        try {
+                                                            let v = (doc.queryCommandValue('formatBlock') || '').toString().toLowerCase().replace(/[<>]/g, '');
+                                                            if (!v || v === 'div') v = 'p';
+                                                            if ([...blockSel.options].some(o => o.value === v)) blockSel.value = v;
+                                                        } catch (_) {}
+                                                    }
+                                                };
+                                                bar.querySelectorAll('[data-cmd]').forEach(btn => {
+                                                    btn.addEventListener('click', e => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        const cmd = btn.getAttribute('data-cmd');
+                                                        if (cmd === 'createLink') { openLinkPanel(); return; }
+                                                        run(cmd);
+                                                    });
+                                                });
+                                                const blockSel = bar.querySelector('[data-block]');
+                                                if (blockSel) blockSel.addEventListener('change', () => {
+                                                    const v = blockSel.value;
+                                                    if (!v) return;
+                                                    run('formatBlock', v);
+                                                });
+                                                const applyLink = bar.querySelector('[data-link-apply]');
+                                                const cancelLink = bar.querySelector('[data-link-cancel]');
+                                                if (applyLink) applyLink.addEventListener('click', e => {
+                                                    e.preventDefault();
+                                                    const url = ((bar.querySelector('[data-link-url]') || {}).value || '').trim();
+                                                    const blank = !!(bar.querySelector('[data-link-blank]') || {}).checked;
+                                                    if (url) {
+                                                        // If caret is collapsed inside a link, select the whole link first.
+                                                        const a0 = linkAnchorFromSel();
+                                                        if (a0) {
+                                                            try {
+                                                                const r = doc.createRange();
+                                                                r.selectNodeContents(a0);
+                                                                const s = doc.getSelection();
+                                                                s.removeAllRanges();
+                                                                s.addRange(r);
+                                                            } catch (_) {}
+                                                        }
+                                                        run('createLink', url);
+                                                        const a = linkAnchorFromSel();
+                                                        if (a) {
+                                                            a.setAttribute('href', url);
+                                                            if (blank) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); }
+                                                            else { a.removeAttribute('target'); a.removeAttribute('rel'); }
+                                                        }
+                                                    }
+                                                    bar.classList.remove('mor-rte-link-open');
+                                                    placeRichToolbar(bar, el);
+                                                });
+                                                if (cancelLink) cancelLink.addEventListener('click', e => {
+                                                    e.preventDefault();
+                                                    bar.classList.remove('mor-rte-link-open');
+                                                    placeRichToolbar(bar, el);
+                                                });
+                                                const linkInp = bar.querySelector('[data-link-url]');
+                                                if (linkInp) linkInp.addEventListener('keydown', e => {
+                                                    if (e.key === 'Enter') { e.preventDefault(); applyLink && applyLink.click(); }
+                                                    if (e.key === 'Escape') { e.preventDefault(); bar.classList.remove('mor-rte-link-open'); placeRichToolbar(bar, el); }
+                                                });
+                                                const doneBtn = bar.querySelector('[data-rte-done]');
+                                                const cancelBtn = bar.querySelector('[data-rte-cancel]');
+                                                if (doneBtn) doneBtn.addEventListener('click', e => {
+                                                    e.preventDefault();
+                                                    finishRichEdit(el, true);
+                                                });
+                                                if (cancelBtn) cancelBtn.addEventListener('click', e => {
+                                                    e.preventDefault();
+                                                    finishRichEdit(el, false);
+                                                });
+                                                doc.addEventListener('selectionchange', syncOnState);
+                                                bar._cleanup = () => doc.removeEventListener('selectionchange', syncOnState);
+                                                window.__morRichActive = el;
+                                                syncOnState();
+                                                // Reposition after layout settles
+                                                requestAnimationFrame(() => placeRichToolbar(bar, el));
+                                            }
+                                            function insertAtCaret(html) {
+                                                const el = window.__morRichActive;
+                                                if (!el || el.contentEditable !== 'true') return false;
+                                                el.focus();
+                                                try {
+                                                    if (doc.queryCommandSupported && doc.queryCommandSupported('insertHTML')) {
+                                                        doc.execCommand('insertHTML', false, html);
+                                                    } else {
+                                                        const sel = doc.getSelection();
+                                                        if (!sel || !sel.rangeCount) return false;
+                                                        const range = sel.getRangeAt(0);
+                                                        range.deleteContents();
+                                                        const tmp = doc.createElement('div');
+                                                        tmp.innerHTML = html;
+                                                        const frag = doc.createDocumentFragment();
+                                                        let node;
+                                                        while ((node = tmp.firstChild)) frag.appendChild(node);
+                                                        range.insertNode(frag);
+                                                    }
+                                                    return true;
+                                                } catch (_) { return false; }
+                                            }
+                                            window.__morRichInsert = insertAtCaret;
+                                            window.__morRichCmd = (cmd, val) => {
+                                                const el = window.__morRichActive;
+                                                if (!el || el.contentEditable !== 'true') return false;
+                                                el.focus();
+                                                try {
+                                                    if (cmd === 'createLink') {
+                                                        const bar = doc.getElementById('mor-rte-bar');
+                                                        if (bar && !val) {
+                                                            bar.classList.add('mor-rte-link-open');
+                                                            const inp = bar.querySelector('[data-link-url]');
+                                                            if (inp) { inp.focus(); inp.select(); }
+                                                            return true;
+                                                        }
+                                                        const url = val || prompt('Link URL (https://… or /page.php)', 'https://');
+                                                        if (url) doc.execCommand('createLink', false, url);
+                                                    } else if (cmd === 'formatBlock') {
+                                                        const tag = (val || 'p').replace(/[<>]/g, '');
+                                                        try { doc.execCommand('formatBlock', false, '<' + tag + '>'); }
+                                                        catch (_) { doc.execCommand('formatBlock', false, tag); }
+                                                    } else {
+                                                        doc.execCommand(cmd, false, val || null);
+                                                    }
+                                                    return true;
+                                                } catch (_) { return false; }
+                                            };
+                                            // Drop Insert-dock blocks / images onto the page (Google Sites–like).
+                                            function nearestBlock(el) {
+                                                if (!el || el === doc.body) return null;
+                                                return el.closest('[data-mor-block],p,h1,h2,h3,h4,h5,h6,li,blockquote,div,section,article,main,.canvas-core,hr,ul,ol');
+                                            }
+                                            function contentHostOf(el) {
+                                                if (!el) return contentHosts(doc)[0] || doc.body;
+                                                return el.closest('.canvas-core, main, article, .content, #content') || el.parentElement || doc.body;
+                                            }
+                                            /** Insert HTML; return {ok, oldHtml, newHtml} for PAGE_TEXT_EDIT when possible. */
+                                            function insertHtmlNear(target, html, before) {
+                                                const wrap = doc.createElement('div');
+                                                wrap.innerHTML = html;
+                                                const nodes = Array.from(wrap.childNodes);
+                                                if (!nodes.length) return { ok: false };
+                                                if (target && target !== doc.body && target.parentNode) {
+                                                    const oldHtml = target.outerHTML;
+                                                    nodes.forEach(n => {
+                                                        if (before) target.parentNode.insertBefore(n, target);
+                                                        else if (target.nextSibling) target.parentNode.insertBefore(n, target.nextSibling);
+                                                        else target.parentNode.appendChild(n);
+                                                    });
+                                                    // Reconstruct: target still in place; siblings were inserted.
+                                                    // Save as old block → block + inserted HTML (or reverse if before).
+                                                    const newHtml = before ? (html + oldHtml) : (oldHtml + html);
+                                                    markContentBlocks(doc);
+                                                    return { ok: true, oldHtml, newHtml };
+                                                }
+                                                const host = contentHostOf(target);
+                                                if (!host) return { ok: false };
+                                                const beforeInner = host.innerHTML;
+                                                nodes.forEach(n => host.appendChild(n));
+                                                const afterInner = host.innerHTML;
+                                                markContentBlocks(doc);
+                                                if (beforeInner === afterInner) return { ok: true };
+                                                return { ok: true, oldHtml: beforeInner, newHtml: afterInner };
+                                            }
+                                            function persistDomEdit(oldHtml, newHtml) {
+                                                if (!oldHtml || !newHtml || oldHtml === newHtml) return;
+                                                // Cap huge host dumps — page_edit has its own size guard too.
+                                                if (oldHtml.length > 24000 || newHtml.length > 32000) {
+                                                    dioxus.send({ action: 'RICH_DROP_HINT', message: 'Change too large to auto-save — use Code view.' });
+                                                    return;
+                                                }
+                                                dioxus.send({ action: 'PAGE_TEXT_EDIT', old_text: oldHtml, new_text: newHtml, rich: true });
+                                            }
+                                            window.__morRichDropHtml = function(html, clientX, clientY) {
+                                                if (!html) return false;
+                                                if (window.__morRichActive && window.__morRichActive.contentEditable === 'true') {
+                                                    return insertAtCaret(html);
+                                                }
+                                                let target = null;
+                                                try {
+                                                    if (typeof clientX === 'number' && doc.elementFromPoint) {
+                                                        target = nearestBlock(doc.elementFromPoint(clientX, clientY));
+                                                    }
+                                                } catch (_) {}
+                                                const res = insertHtmlNear(target, html, false);
+                                                if (res.ok && res.oldHtml && res.newHtml) persistDomEdit(res.oldHtml, res.newHtml);
+                                                else if (res.ok) dioxus.send({ action: 'RICH_DROP_HINT', message: 'Block inserted in preview — open Code view if it did not save.' });
+                                                return !!res.ok;
+                                            };
+                                            doc.addEventListener('dragover', e => {
+                                                if (window.__morEditActive === false) return;
+                                                const types = e.dataTransfer && e.dataTransfer.types ? Array.from(e.dataTransfer.types) : [];
+                                                if (contentDragEl || types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain') || types.includes('application/x-mor-insert-html') || types.includes('application/x-mor-content-block')) {
+                                                    e.preventDefault();
+                                                    e.dataTransfer.dropEffect = contentDragEl ? 'move' : 'copy';
+                                                    const t = nearestBlock(e.target);
+                                                    doc.querySelectorAll('.mor-drop-hover').forEach(x => x.classList.remove('mor-drop-hover'));
+                                                    if (t && t !== contentDragEl) t.classList.add('mor-drop-hover');
+                                                }
+                                            });
+                                            doc.addEventListener('dragleave', e => {
+                                                const t = nearestBlock(e.target);
+                                                if (t) t.classList.remove('mor-drop-hover');
+                                            });
+                                            doc.addEventListener('drop', e => {
+                                                if (window.__morEditActive === false) return;
+                                                doc.querySelectorAll('.mor-drop-hover').forEach(x => x.classList.remove('mor-drop-hover'));
+                                                // Reorder content blocks (drag handle on [data-mor-block]).
+                                                if (contentDragEl) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    const dest = nearestBlock(e.target);
+                                                    const from = contentDragEl;
+                                                    contentDragEl = null;
+                                                    from.classList.remove('dragging');
+                                                    if (dest && dest !== from && dest.parentNode && from.parentNode === dest.parentNode) {
+                                                        const parent = from.parentNode;
+                                                        const beforeHtml = parent.innerHTML;
+                                                        const rect = dest.getBoundingClientRect();
+                                                        const before = e.clientY < rect.top + rect.height / 2;
+                                                        parent.insertBefore(from, before ? dest : dest.nextSibling);
+                                                        const afterHtml = parent.innerHTML;
+                                                        persistDomEdit(beforeHtml, afterHtml);
+                                                    }
+                                                    return;
+                                                }
+                                                let html = '';
+                                                try {
+                                                    html = e.dataTransfer.getData('application/x-mor-insert-html') || '';
+                                                    if (!html) {
+                                                        const plain = e.dataTransfer.getData('text/plain') || '';
+                                                        if (plain.startsWith('MOR_INSERT_HTML:')) html = plain.slice('MOR_INSERT_HTML:'.length);
+                                                    }
+                                                } catch (_) {}
+                                                // External image URL drag
+                                                if (!html) {
+                                                    const uri = (e.dataTransfer.getData('text/uri-list') || '').split('\n').map(s => s.trim()).find(s => s && !s.startsWith('#'));
+                                                    if (uri && /^https?:\/\//i.test(uri)) {
+                                                        html = '<img src="' + uri.replace(/"/g, '&quot;') + '" alt="" style="max-width:100%;height:auto" />';
+                                                    }
+                                                }
+                                                if (html) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    const t = nearestBlock(e.target);
+                                                    if (window.__morRichActive && window.__morRichActive.contentEditable === 'true') {
+                                                        insertAtCaret(html);
+                                                    } else {
+                                                        const res = insertHtmlNear(t, html, false);
+                                                        if (res.ok && res.oldHtml && res.newHtml) persistDomEdit(res.oldHtml, res.newHtml);
+                                                        else dioxus.send({ action: 'RICH_DROP_HINT', message: 'Block dropped — could not auto-save; use Code view if needed.' });
+                                                    }
+                                                    return;
+                                                }
+                                                // File image drop handled existing path for SVG icons; also handle raster images.
+                                                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                    const file = e.dataTransfer.files[0];
+                                                    if (file && file.type && file.type.startsWith('image/') && !file.type.includes('svg')) {
+                                                        e.preventDefault();
+                                                        // Host app imports via path only on desktop file dialog; browser File has no path.
+                                                        // Read as data URL for immediate preview; user can re-import via Insert dock to file.
+                                                        const reader = new FileReader();
+                                                        reader.onload = (ev) => {
+                                                            const dataUrl = ev.target.result;
+                                                            const alt = (file.name || 'image').replace(/"/g, '');
+                                                            const imgHtml = '<img src="' + dataUrl + '" alt="' + alt + '" style="max-width:100%;height:auto" />';
+                                                            if (window.__morRichActive && window.__morRichActive.contentEditable === 'true') insertAtCaret(imgHtml);
+                                                            else {
+                                                                const res = insertHtmlNear(nearestBlock(e.target), imgHtml, false);
+                                                                if (res.ok && res.oldHtml && res.newHtml) persistDomEdit(res.oldHtml, res.newHtml);
+                                                            }
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }
+                                            });
+                                            // Content-block drag start (reorder). Skip while text-editing.
+                                            doc.addEventListener('dragstart', e => {
+                                                if (window.__morEditActive === false) return;
+                                                if (e.target.closest && e.target.closest('#mor-rte-bar')) { e.preventDefault(); return; }
+                                                const el = e.target.closest && e.target.closest('[data-mor-block]');
+                                                if (!el || el.getAttribute('data-block-id')) return;
+                                                if (el.contentEditable === 'true' || el.closest('[contenteditable="true"]')) return;
+                                                contentDragEl = el;
+                                                el.classList.add('dragging');
+                                                try {
+                                                    e.dataTransfer.effectAllowed = 'move';
+                                                    e.dataTransfer.setData('application/x-mor-content-block', '1');
+                                                    e.dataTransfer.setData('text/plain', 'MOR_CONTENT_BLOCK');
+                                                } catch (_) {}
+                                            });
+                                            doc.addEventListener('dragend', e => {
+                                                if (contentDragEl) contentDragEl.classList.remove('dragging');
+                                                contentDragEl = null;
+                                                doc.querySelectorAll('.mor-drop-hover').forEach(x => x.classList.remove('mor-drop-hover'));
+                                            });
                                             function selLabel(el) {
                                                 if (!el || el === doc.body || el === doc.documentElement) return 'Body';
                                                 const tag = (el.tagName || 'el').toLowerCase();
@@ -490,26 +990,48 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                                 doc.__morHov = t;
                                                 t.classList.add('mor-xray-hover');
                                             });
-                                            // Webflow-like: double-click any text node to edit in place
+                                            // Double-click text → edit with floating toolbar.
+                                            // Select the word under the caret (not the whole block).
                                             doc.addEventListener('dblclick', e => {
                                                 if (window.__morEditActive === false) return;
+                                                if (e.target.closest('#mor-rte-bar')) return;
+                                                // Prefer a real text block over a huge wrapping div.
                                                 let el = e.target.closest('[data-field-path],[data-mor-edit]');
+                                                if (!el) {
+                                                    el = e.target.closest('h1,h2,h3,h4,h5,h6,p,li,blockquote,figcaption,td,th,label,a');
+                                                }
                                                 if (!el) el = e.target.closest(TEXT_EDIT);
-                                                if (!el || el.closest('script,style,svg,code,pre,input,textarea,select')) return;
+                                                if (!el || el.closest('script,style,svg,code,pre,input,textarea,select,#mor-rte-bar,nav,header,footer,.mor-panel')) return;
+                                                // Avoid turning the whole main column into contentEditable.
+                                                if (el.matches('div') && (el.classList.contains('canvas-core') || el.id === 'page-wrap' || el.children.length > 3)) {
+                                                    el = e.target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote') || el;
+                                                }
                                                 e.preventDefault();
                                                 e.stopPropagation();
+                                                // End any previous edit session first.
+                                                if (window.__morRichActive && window.__morRichActive !== el) {
+                                                    finishRichEdit(window.__morRichActive, true);
+                                                }
                                                 selectEl(doc, el);
                                                 el.setAttribute('data-mor-edit-before', el.innerText);
+                                                el.setAttribute('data-mor-edit-before-html', el.innerHTML);
                                                 el.contentEditable = 'true';
                                                 el.classList.add('mor-canvas-editing');
+                                                el.setAttribute('spellcheck', 'true');
                                                 el.focus();
                                                 try {
-                                                    const r = doc.createRange();
-                                                    r.selectNodeContents(el);
-                                                    const s = doc.defaultView.getSelection();
-                                                    s.removeAllRanges();
-                                                    s.addRange(r);
+                                                    // Prefer the browser's word selection from the dblclick;
+                                                    // only fall back to placing the caret if nothing is selected.
+                                                    const s = doc.getSelection();
+                                                    if (!s || s.isCollapsed || !el.contains(s.anchorNode)) {
+                                                        const r = doc.createRange();
+                                                        r.selectNodeContents(el);
+                                                        r.collapse(false); // caret at end
+                                                        s.removeAllRanges();
+                                                        s.addRange(r);
+                                                    }
                                                 } catch (_) {}
+                                                showRichToolbar(el);
                                             });
                                             doc.addEventListener('contextmenu', e => {
                                                 const targetEl = e.target.closest("[data-edit-target^='icons.']");
@@ -543,39 +1065,46 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                                 }
                                             });
                                             doc.addEventListener('blur', e => {
+                                                // Don't end edit when focusing the floating toolbar / link field.
+                                                const related = e.relatedTarget;
+                                                if (related && related.closest && related.closest('#mor-rte-bar')) return;
                                                 const el = e.target.closest('[contenteditable="true"],[contenteditable=true]');
                                                 if (!el || el.contentEditable !== "true") return;
-                                                el.contentEditable = false;
-                                                el.classList.remove('mor-canvas-editing');
-                                                const before = el.getAttribute('data-mor-edit-before') || '';
-                                                el.removeAttribute('data-mor-edit-before');
-                                                const after = el.innerText;
-                                                const path = el.getAttribute('data-field-path') || el.getAttribute('data-mor-edit');
-                                                if (path) {
-                                                    dioxus.send({action: "UPDATE_VALUE", target: path, value: after});
-                                                } else if (before !== after) {
-                                                    dioxus.send({
-                                                        action: "PAGE_TEXT_EDIT",
-                                                        old_text: before,
-                                                        new_text: after,
-                                                        tag: (el.tagName || '').toLowerCase()
-                                                    });
-                                                }
+                                                if (el.id === 'mor-rte-bar' || el.closest('#mor-rte-bar')) return;
+                                                setTimeout(() => {
+                                                    if (doc.activeElement && doc.activeElement.closest && doc.activeElement.closest('#mor-rte-bar')) return;
+                                                    if (el.contentEditable !== 'true') return;
+                                                    finishRichEdit(el, true);
+                                                }, 160);
                                             }, true);
-                                            // Enter commits the edit (Esc cancels)
+                                            // Formatting shortcuts + Done/Cancel
                                             doc.addEventListener('keydown', e => {
+                                                // Link field shortcuts handled on the input itself.
+                                                if (e.target && e.target.closest && e.target.closest('#mor-rte-bar')) return;
                                                 const el = doc.activeElement;
                                                 if (!el || el.contentEditable !== 'true') return;
+                                                if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+                                                    const k = (e.key || '').toLowerCase();
+                                                    if (k === 'b') { e.preventDefault(); doc.execCommand('bold'); return; }
+                                                    if (k === 'i') { e.preventDefault(); doc.execCommand('italic'); return; }
+                                                    if (k === 'u') { e.preventDefault(); doc.execCommand('underline'); return; }
+                                                    if (k === 'k') {
+                                                        e.preventDefault();
+                                                        if (window.__morRichCmd) window.__morRichCmd('createLink');
+                                                        return;
+                                                    }
+                                                    if (k === 's') {
+                                                        e.preventDefault();
+                                                        finishRichEdit(el, true);
+                                                        return;
+                                                    }
+                                                }
                                                 if (e.key === 'Escape') {
                                                     e.preventDefault();
-                                                    const before = el.getAttribute('data-mor-edit-before');
-                                                    if (before != null) el.innerText = before;
-                                                    el.contentEditable = false;
-                                                    el.classList.remove('mor-canvas-editing');
-                                                    el.removeAttribute('data-mor-edit-before');
+                                                    finishRichEdit(el, false);
                                                 } else if (e.key === 'Enter' && !e.shiftKey && !/^(H[1-6]|P|LI|DIV|BLOCKQUOTE)$/i.test(el.tagName)) {
                                                     e.preventDefault();
-                                                    el.blur();
+                                                    finishRichEdit(el, true);
                                                 }
                                             });
                                             let draggedId = null;
@@ -664,14 +1193,31 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                                             const labelEl = pick.querySelector
                                                                 ? pick.querySelector('.mor-sidebar__item-label')
                                                                 : null;
+                                                            // Prefer <a>/<img>/<button> for instance fields when nested.
+                                                            let inst = pick;
+                                                            if (pick.closest) {
+                                                                const a = pick.closest('a[href]');
+                                                                const img = pick.closest('img');
+                                                                const btn = pick.closest('button, a.btn, a.btn-primary, .btn-primary');
+                                                                if (img && pick.tagName && pick.tagName.toLowerCase() !== 'a') inst = img;
+                                                                else if (a) inst = a;
+                                                                else if (btn) inst = btn;
+                                                            }
+                                                            const outer = (inst.outerHTML || '').slice(0, 8000);
                                                             dioxus.send({
                                                                 action: "SELECT_DOM",
-                                                                tag: pick.tagName.toLowerCase(),
-                                                                classes: (cls && cls.baseVal !== undefined ? cls.baseVal : cls) || '',
-                                                                label: selLabel(pick),
-                                                                href: pick.getAttribute && pick.getAttribute('href') || '',
+                                                                tag: inst.tagName.toLowerCase(),
+                                                                classes: (function(){
+                                                                    const c = inst.className;
+                                                                    return (c && c.baseVal !== undefined ? c.baseVal : c) || '';
+                                                                })(),
+                                                                label: selLabel(inst),
+                                                                href: inst.getAttribute && inst.getAttribute('href') || '',
+                                                                src: inst.getAttribute && inst.getAttribute('src') || '',
+                                                                alt: inst.getAttribute && inst.getAttribute('alt') || '',
                                                                 text: (labelEl && labelEl.innerText)
-                                                                    || (pick.innerText || '').trim().slice(0, 80),
+                                                                    || (inst.innerText || '').trim().slice(0, 80),
+                                                                outer_html: outer,
                                                                 nav_group: pick.getAttribute && pick.getAttribute('data-group-index'),
                                                                 nav_item: pick.getAttribute && pick.getAttribute('data-item-index')
                                                             });
@@ -722,16 +1268,12 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                             "SELECT_DOM" => {
                                                 if let Some(tag) = json.get("tag").and_then(|t| t.as_str()) {
                                                     let classes = json.get("classes").and_then(|c| c.as_str()).unwrap_or("");
-                                                    let href = json
-                                                        .get("href")
-                                                        .and_then(|h| h.as_str())
-                                                        .filter(|s| !s.is_empty())
-                                                        .map(str::to_string);
-                                                    let text = json
-                                                        .get("text")
-                                                        .and_then(|t| t.as_str())
-                                                        .filter(|s| !s.is_empty())
-                                                        .map(str::to_string);
+                                                    let opt_str = |k: &str| {
+                                                        json.get(k)
+                                                            .and_then(|h| h.as_str())
+                                                            .filter(|s| !s.is_empty())
+                                                            .map(str::to_string)
+                                                    };
                                                     let parse_idx = |k: &str| {
                                                         json.get(k).and_then(|v| {
                                                             v.as_u64()
@@ -744,8 +1286,11 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                                     let facts = crate::app::edit_context::DomSelectFacts {
                                                         tag: tag.to_string(),
                                                         classes: classes.to_string(),
-                                                        href,
-                                                        text,
+                                                        href: opt_str("href"),
+                                                        src: opt_str("src"),
+                                                        alt: opt_str("alt"),
+                                                        text: opt_str("text"),
+                                                        outer_html: opt_str("outer_html"),
                                                         nav_group: parse_idx("nav_group"),
                                                         nav_item: parse_idx("nav_item"),
                                                     };
@@ -776,6 +1321,14 @@ html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " 
                                                 ) {
                                                     if let Some(handler) = on_page_text_edit.as_ref() {
                                                         handler.call((old_t.to_string(), new_t.to_string()));
+                                                    }
+                                                }
+                                            }
+                                            "RICH_DROP_HINT" => {
+                                                if let Some(msg) = json.get("message").and_then(|m| m.as_str()) {
+                                                    log::info!("Rich drop: {msg}");
+                                                    if let Some(handler) = on_status.as_ref() {
+                                                        handler.call(msg.to_string());
                                                     }
                                                 }
                                             }

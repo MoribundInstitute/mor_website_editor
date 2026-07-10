@@ -2,6 +2,7 @@ pub mod js_workbench;
 pub mod layout;
 pub mod module_workbench;
 pub mod page_map;
+pub mod rich_edit;
 pub mod preview_canvas;
 pub mod preview_ribbon;
 pub mod static_page_editor;

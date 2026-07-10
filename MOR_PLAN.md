@@ -21,13 +21,14 @@ intelligence. Every visual control and every line of code compile through the sa
   inject `mor-theme.css` live, export stylesheet or site ZIP.
 * **Token-driven theming:** palette docks, presets (`theme_presets/*.toml`), modular CSS
   assembly (`build_master_css` + `render_css_sockets`).
-* **HTML modules:** header / sidebar / footer variants with `.mor-*` hooks and edit markers.
-* **Editor Canvas (v1):** Browse | Inspect | Edit; `data-mor-edit` / `data-field-path`
-  for site title, subtitle, footer text; token surfaces via `data-edit-target`.
-* **Preview ribbon:** modes + Home/View/Selection tools only (no pinable app shortcuts —
-  those stay in the menu bar / activity bar).
-* **Designer mode (default):** activity bar shows Theme, Site Pages, Presets.
-  View → Advanced Mode adds CSS/JS/diagnostics docks.
+* **Site-first structure:** open a real folder; PHP/HTML/CSS on disk is layout truth.
+  Optional **Starter kits** (Advanced only) scaffold new pages — not a Blogger-style
+  template pack for live sites.
+* **Editor Canvas:** Edit | View | Browser; page text, Insert, Inspector; markers for
+  shared site fields; tokens via Theme Palette.
+* **Preview ribbon:** modes + Home/View/Selection tools (menu bar for app commands).
+* **Designer mode (default):** Theme, Page, Insert, Inspector, Presets.
+  View → Advanced Mode adds CSS/JS/diagnostics + starter kits.
 * **CLI (`mwt`):** `init` / `init --template starter`, `check`, `build`, `bundle`, `plugin`.
 * **Starter site:** `examples/mor_starter` + `scaffold_starter_site` (PHP includes + web component).
 * **Diagnostics:** unresolved tokens, selector drift, unlinked stylesheets.

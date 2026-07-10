@@ -33,13 +33,26 @@
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  transition: background 0.2s;
+  transition:
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
 }
 
-.editor-accordion-header:hover,
+.editor-accordion-header:hover {
+  background-color: var(--editor-hover-bg-strong);
+  color: var(--editor-text);
+  box-shadow: inset 3px 0 0 var(--editor-accent);
+}
+
 .editor-accordion-header.active {
-  background-color: var(--editor-accent);
-  color: var(--editor-bg);
+  background-color: color-mix(in srgb, var(--editor-accent) 18%, var(--editor-panel-raised));
+  color: var(--editor-accent-warm, var(--editor-accent));
+  box-shadow: inset 3px 0 0 var(--editor-accent);
+}
+
+.editor-accordion-header.active:hover {
+  background-color: color-mix(in srgb, var(--editor-accent) 26%, var(--editor-panel-raised));
 }
 
 .editor-accordion-section-open .editor-accordion-header {

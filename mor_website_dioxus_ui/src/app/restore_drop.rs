@@ -2,7 +2,9 @@ use dioxus::prelude::*;
 
 use crate::app::state::ThemeState;
 use crate::app::vfs::VfsDictionary;
-use mor_website_core::utils::rehydration::{extract_workspace_state, persist_vfs_overrides};
+use mor_website_core::utils::rehydration::{
+    extract_and_decode, extract_workspace_state, persist_vfs_overrides,
+};
 
 pub fn use_restore_drop_bridge(theme: ThemeState) {
     let signals = theme.signals;
@@ -11,15 +13,15 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
         let mut eval = dioxus::document::eval(
             r#"
             (function () {
-                if (window.__morRestoreXmlNativeDropInstalled) {
+                if (window.__morRestoreWorkspaceNativeDropInstalled) {
                     dioxus.send({
                         kind: "restore_drop_ready",
-                        message: "Restore XML drop bridge already installed."
+                        message: "Restore drop bridge already installed."
                     });
                     return;
                 }
 
-                window.__morRestoreXmlNativeDropInstalled = true;
+                window.__morRestoreWorkspaceNativeDropInstalled = true;
 
                 function hasFileDrag(event) {
                     if (!event.dataTransfer) return false;
@@ -33,15 +35,19 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
                     return event.dataTransfer.files && event.dataTransfer.files.length > 0;
                 }
 
-                function findXmlFile(files) {
+                function findThemeFile(files) {
                     for (const file of files) {
                         const name = (file.name || "").toLowerCase();
                         const type = (file.type || "").toLowerCase();
 
                         if (
+                            name.endsWith(".toml") ||
+                            name === "workspace.toml" ||
                             name.endsWith(".xml") ||
                             type === "text/xml" ||
-                            type === "application/xml"
+                            type === "application/xml" ||
+                            type === "application/toml" ||
+                            type === "text/plain"
                         ) {
                             return file;
                         }
@@ -74,7 +80,7 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
                     event.preventDefault();
 
                     const files = Array.from(event.dataTransfer.files || []);
-                    const file = findXmlFile(files);
+                    const file = findThemeFile(files);
 
                     if (!file) {
                         dioxus.send({
@@ -88,8 +94,8 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
                         const text = await file.text();
 
                         dioxus.send({
-                            kind: "restore_xml_drop",
-                            name: file.name || "dropped XML",
+                            kind: "restore_workspace_drop",
+                            name: file.name || "dropped theme file",
                             text: text
                         });
                     } catch (error) {
@@ -102,7 +108,7 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
 
                 dioxus.send({
                     kind: "restore_drop_ready",
-                    message: "Restore XML drop bridge installed."
+                    message: "Restore drop bridge installed."
                 });
             })();
             "#,
@@ -119,33 +125,49 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
                 };
 
                 match kind {
-                    "restore_xml_drop" => {
+                    // Prefer new event name; keep legacy id for mid-session reloads.
+                    "restore_workspace_drop" | "restore_xml_drop" => {
                         let name = value
                             .get("name")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("dropped XML");
+                            .unwrap_or("dropped theme file");
 
-                        let Some(xml_text) = value.get("text").and_then(|v| v.as_str()) else {
+                        let Some(text) = value.get("text").and_then(|v| v.as_str()) else {
                             log::error!(
-                                "Dropped XML event from desktop bridge did not include text."
+                                "Dropped theme event from desktop bridge did not include text."
                             );
                             continue;
                         };
 
-                        match extract_workspace_state(xml_text) {
+                        // Full payload (TOML or XML marker + optional VFS) when present;
+                        // otherwise plain workspace.toml → ThemeConfig only.
+                        let restored = extract_workspace_state(text).or_else(|_| {
+                            extract_and_decode(text).map(|config| {
+                                mor_website_core::utils::rehydration::RehydrationPayload::from_config(
+                                    config,
+                                )
+                            })
+                        });
+
+                        match restored {
                             Ok(payload) => {
                                 restore_signals.apply_config(&payload.config);
-                                vfs.write().clear();
-                                vfs.write().extend(payload.vfs.clone());
-                                if let Err(err) = persist_vfs_overrides(&payload.vfs) {
-                                    log::error!("Failed to persist restored VFS overrides: {}", err);
+                                if !payload.vfs.is_empty() {
+                                    vfs.write().clear();
+                                    vfs.write().extend(payload.vfs.clone());
+                                    if let Err(err) = persist_vfs_overrides(&payload.vfs) {
+                                        log::error!(
+                                            "Failed to persist restored VFS overrides: {}",
+                                            err
+                                        );
+                                    }
                                 }
                                 restored_active_preset.set(None);
                                 theme.commit();
-                                log::info!("Workspace restored from dropped XML file: {}", name);
+                                log::info!("Workspace restored from dropped file: {}", name);
                             }
                             Err(err) => {
-                                log::error!("Failed to restore dropped XML file {}: {}", name, err);
+                                log::error!("Failed to restore dropped file {}: {}", name, err);
                             }
                         }
                     }
@@ -160,7 +182,7 @@ pub fn use_restore_drop_bridge(theme: ThemeState) {
                         let message = value
                             .get("message")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("Restore XML drop bridge ready.");
+                            .unwrap_or("Restore drop bridge ready.");
                         log::info!("{}", message);
                     }
                     _ => {}

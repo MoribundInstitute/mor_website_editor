@@ -121,9 +121,21 @@ pub fn extract_workspace_state(pasted_xml: &str) -> Result<RehydrationPayload, S
     }
 }
 
-/// Extracts the base64 string from pasted XML, decompresses it, and returns the ThemeConfig.
-pub fn extract_and_decode(pasted_xml: &str) -> Result<ThemeConfig, String> {
-    extract_workspace_state(pasted_xml).map(|payload| payload.config)
+/// Restore a ThemeConfig from website-native or legacy paste/drop payloads.
+///
+/// Prefer plain `workspace.toml` (ThemeConfig). Fall back to an embedded state
+/// marker in legacy theme XML (Blogger-era exports) so old backups still open.
+pub fn extract_and_decode(pasted: &str) -> Result<ThemeConfig, String> {
+    let trimmed = pasted.trim();
+    if trimmed.is_empty() {
+        return Err("Nothing to restore — paste workspace.toml or drop a theme backup.".into());
+    }
+    // Website-native: raw ThemeConfig TOML (workspace.toml).
+    if let Ok(config) = toml::from_str::<ThemeConfig>(trimmed) {
+        return Ok(config);
+    }
+    // Legacy: MORIBUND_THEME_STATE marker inside exported theme XML.
+    extract_workspace_state(pasted).map(|payload| payload.config)
 }
 
 /// Writes CSS/JS overrides from a restored VFS back to the user workspace directory.

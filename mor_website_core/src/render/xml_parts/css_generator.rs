@@ -817,28 +817,45 @@ pub fn render_button_styles(b: &ButtonConfig, scope: &str) -> String {
     if b.full_width {
         decls.push_str("  width: 100%;\n");
     }
-    let transition = if b.transition_ms.trim().is_empty() || b.transition_ms.trim() == "0ms" {
-        String::new()
-    } else {
+    // Always emit a short transition so hover doesn't snap — even when the
+    // config still says 0ms (historical default). Explicit non-zero wins.
+    let transition = {
+        let ms = b.transition_ms.trim();
+        let ms = if ms.is_empty() || ms == "0ms" || ms == "0" {
+            "160ms"
+        } else {
+            ms
+        };
         let easing = if b.easing.trim().is_empty() {
-            "ease"
+            "cubic-bezier(0.2, 0.8, 0.2, 1)"
         } else {
             b.easing.trim()
         };
-        format!("  transition: all {} {};\n", b.transition_ms, easing)
+        format!(
+            "  transition: background {ms} {easing}, color {ms} {easing}, border-color {ms} {easing}, box-shadow {ms} {easing}, transform {ms} {easing}, filter {ms} {easing};\n"
+        )
     };
 
     let hover_extra = match b.hover_effect.as_str() {
-        "lift" => "  transform: translateY(-2px);\n  box-shadow: 0 4px 10px rgba(0,0,0,0.3);\n".to_string(),
-        "grow" => "  transform: scale(1.04);\n".to_string(),
-        "brighten" => "  filter: brightness(1.12);\n".to_string(),
+        "lift" => "  transform: translateY(-2px);\n  box-shadow: 0 6px 16px rgba(0,0,0,0.28), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);\n".to_string(),
+        "grow" => "  transform: scale(1.04);\n  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);\n".to_string(),
+        "brighten" => "  filter: brightness(1.12);\n  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg-base) 18%, transparent);\n".to_string(),
         // Customizable glow, also intensifies neon on hover.
-        "glow" => format!("  box-shadow: 0 0 {g} {gc}, 0 0 calc({g} * 2) color-mix(in srgb, {gc} 50%, transparent);\n"),
+        "glow" => format!("  box-shadow: 0 0 {g} {gc}, 0 0 calc({g} * 2) color-mix(in srgb, {gc} 50%, transparent);\n  transform: translateY(-1px);\n"),
         // Neon fill flip: button lights up to the accent with contrasting text,
         // a subtle scale, and a glow — the classic "fill on hover" link/button.
-        "invert" => format!("  background: var(--accent);\n  color: var(--bg-base);\n  border-color: var(--accent);\n  transform: scale(1.03);\n  box-shadow: 0 0 {g} {gc};\n"),
-        _ => String::new(),
+        "invert" => format!("  background: var(--accent);\n  color: var(--bg-base);\n  border-color: var(--accent);\n  transform: translateY(-1px) scale(1.02);\n  box-shadow: 0 0 {g} {gc}, 0 4px 14px color-mix(in srgb, {gc} 35%, transparent);\n"),
+        // Subtle default when no named effect: accent border + soft wash.
+        "none" | "" => "  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-color));\n  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);\n".to_string(),
+        _ => "  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-color));\n".to_string(),
     };
+    let active_sel = sel
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| format!("{s}:active"))
+        .collect::<Vec<_>>()
+        .join(", ");
     let pressed = if b.pressed_feedback {
         // Outset borders flip to inset on press for the classic 3D button feel.
         let bevel = if b.border_style == "outset" {
@@ -846,7 +863,7 @@ pub fn render_button_styles(b: &ButtonConfig, scope: &str) -> String {
         } else {
             ""
         };
-        format!("{sel}:active {{ transform: translateY(1px) scale(0.99);{bevel} }}\n")
+        format!("{active_sel} {{ transform: translateY(1px) scale(0.99);{bevel} }}\n")
     } else {
         String::new()
     };
@@ -872,13 +889,23 @@ pub fn render_button_styles(b: &ButtonConfig, scope: &str) -> String {
         format!("  background: {};\n", hover_bg)
     };
 
+    let hover_sel = hover_selectors(&sel);
+    let focus_sel = sel
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| format!("{s}:focus-visible"))
+        .collect::<Vec<_>>()
+        .join(", ");
     format!(
         "/* --- Computed button styles --- */\n\
-{sel} {{\n  background: {bg};\n  color: {fg};\n  border: {bw} {bstyle} {border};\n  border-radius: {radius};\n  padding: {py} {px};\n  text-transform: {tt};\n  box-shadow: {shadow};\n{decls}{transition}{effect_extra}{shadow_override}}}\n\
-{sel}:hover, {sel}:focus {{\n{hover_bg_decl}  color: {hover_fg};\n{hover_extra}}}\n\
-{sel}:focus-visible {{ outline: none; box-shadow: 0 0 0 {fw} {focus_color}; }}\n\
+{sel} {{\n  background: {bg};\n  color: {fg};\n  border: {bw} {bstyle} {border};\n  border-radius: {radius};\n  padding: {py} {px};\n  text-transform: {tt};\n  box-shadow: {shadow};\n  cursor: pointer;\n{decls}{transition}{effect_extra}{shadow_override}}}\n\
+{hover_sel} {{\n{hover_bg_decl}  color: {hover_fg};\n{hover_extra}}}\n\
+{focus_sel} {{ outline: none; box-shadow: 0 0 0 {fw} {focus_color}; }}\n\
 {pressed}",
         sel = sel,
+        hover_sel = hover_sel,
+        focus_sel = focus_sel,
         bg = bg,
         fg = fg,
         bw = b.border_width,
@@ -929,6 +956,25 @@ mod glow_tests {
     }
 
     #[test]
+    fn button_hover_expands_each_selector() {
+        let mut b = ButtonConfig::default();
+        b.hover_effect = "lift".into();
+        b.transition_ms = "160ms".into();
+        let css = render_button_styles(&b, "");
+        // Multi-selector list must not only attach :hover to the last item.
+        assert!(
+            css.contains("button:not(.panel-toggle):hover"),
+            "expected expanded hover on first selector, got:\n{css}"
+        );
+        assert!(
+            css.contains(".pager-btn:hover"),
+            "expected expanded hover on sibling selectors, got:\n{css}"
+        );
+        assert!(css.contains("transition:"));
+        assert!(css.contains("translateY(-2px)"));
+    }
+
+    #[test]
     fn always_mode_emits_resting_plus_wider_hover() {
         let mut config = ThemeConfig::default();
         config.colors.glow_title = true;
@@ -957,7 +1003,7 @@ mod glow_tests {
         assert!(css.contains(":hover"));
         assert!(css.contains("background: var(--accent);"));
         assert!(css.contains("color: var(--bg-base);"));
-        assert!(css.contains("transform: scale("));
+        assert!(css.contains("scale(1.02)") || css.contains("transform: scale("));
     }
 
     #[test]
@@ -979,7 +1025,7 @@ mod glow_tests {
         assert!(css.contains("background: #c2622a;")); // override wins
         assert!(css.contains("inset 0 1px 0")); // raised shadow
         assert!(css.contains("translateY(-2px)")); // lift hover
-        assert!(css.contains("transition: all 150ms ease;"));
+        assert!(css.contains("transition:") && css.contains("150ms"));
     }
 
     #[test]
@@ -1014,7 +1060,10 @@ mod glow_tests {
         assert!(css.contains("background: linear-gradient(180deg, #aaa, #333)"));
         assert!(css.contains("box-shadow: inset 1px 1px 0 #fff;")); // override
         // Gradient keeps its surface on hover: hover rule has no background reset.
-        assert!(css.contains(":focus {\n  color:"), "hover should not reset background");
+        assert!(
+            css.contains(":focus-visible {\n  color:") || css.contains(":hover {\n  color:"),
+            "hover should not reset background"
+        );
 
         // Outset border flips to inset on press.
         let mut w = ButtonConfig::default();

@@ -219,7 +219,7 @@ impl Default for SiteConfig {
     fn default() -> Self {
         Self {
             site_title: "Modern Editorial".to_string(),
-            site_subtitle: "A clean Blogger starter for posts, notes, and pages.".to_string(),
+            site_subtitle: "A clean starter for pages, notes, and posts.".to_string(),
             header_logo_url: String::new(),
             home_url: "/".to_string(),
         }
@@ -239,9 +239,9 @@ pub struct SeoConfig {
 impl Default for SeoConfig {
     fn default() -> Self {
         Self {
-            meta_description: "A modern Blogger theme generated with Blogger Theme Architect."
+            meta_description: "A modern website theme generated with MorWebsite Editor."
                 .to_string(),
-            meta_keywords: "blog, writing, theme, editorial".to_string(),
+            meta_keywords: "website, writing, theme, editorial".to_string(),
             custom_robots: "index, follow".to_string(),
             license_url: String::new(),
             author_name: String::new(),

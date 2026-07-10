@@ -22,18 +22,43 @@
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease),
+    transform var(--editor-hover-ease);
 }
 
-.editor-mini-button:hover {
-  border-color: var(--editor-muted);
-  background: rgba(255, 255, 255, 0.08);
+.editor-mini-button:hover:not(:disabled):not(.editor-mini-button-disabled) {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
+  color: var(--editor-text);
+  box-shadow: var(--editor-hover-glow);
+}
+
+.editor-mini-button:active:not(:disabled):not(.editor-mini-button-disabled) {
+  transform: translateY(0.5px);
+  box-shadow: none;
 }
 
 .editor-mini-button-active {
   border-color: var(--editor-accent);
   color: var(--editor-accent);
-  background: color-mix(in srgb, var(--editor-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--editor-accent) 12%, transparent);
+}
+
+.editor-mini-button-active:hover:not(:disabled) {
+  border-color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 20%, transparent);
+  color: var(--editor-accent-warm, var(--editor-accent));
+  box-shadow: var(--editor-hover-glow);
+}
+
+.editor-mini-button:disabled,
+.editor-mini-button-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Segmented control: mutually-exclusive mini-buttons sharing one border. */

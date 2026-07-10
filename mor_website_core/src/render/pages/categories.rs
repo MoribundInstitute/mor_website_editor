@@ -9,7 +9,7 @@ pub fn generate_categories_html(config: &CategoriesPageConfig) -> String {
     // 1. Structural CSS (No colors, just grid/flex layout)
     html.push_str(r#"
 <style>
-/* Hide the default Blogger page title to prevent duplication */
+/* Hide a host page title if the shell already renders one */
 h3.post-title.entry-title, h1.post-title.entry-title { display: none !important; }
 
 .mor-directory { max-width: 1000px; margin: 0 auto; padding: 20px 0; }

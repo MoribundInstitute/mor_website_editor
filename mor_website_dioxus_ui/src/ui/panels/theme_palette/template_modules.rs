@@ -1,7 +1,8 @@
-//! Template Modules panel: pick the website HTML building blocks
-//! (header / sidebars / footer). Selection is stored in the existing
-//! `template_pack` slots; the modules' CSS folds into `mor-theme.css`
-//! automatically and their JS ships via `mor-theme.js` on export.
+//! Starter kits (optional): HTML partials for scaffolding a *new* site.
+//!
+//! Not the primary layout model for an existing PHP/HTML folder — structure
+//! lives on disk. Selection still uses `template_pack` slots so export can
+//! fold module CSS into `mor-theme.css` and write `mor-starter.html`.
 
 use dioxus::prelude::*;
 use mor_website_core::config::ThemeConfig;
@@ -21,7 +22,9 @@ pub fn TemplateModulesPanel(
         div { class: "editor-panel-content", style: "display: flex; flex-direction: column; gap: 12px;",
             p {
                 style: "margin: 0; font-size: 13px; color: var(--editor-fg-muted); line-height: 1.4;",
-                "Building blocks for your pages. Selected modules style themselves through mor-theme.css; copy their HTML into your pages or write a starter page from the Export tab."
+                "Optional kits for scaffolding a new site — not for rearranging an existing project. "
+                "Your real structure is the files on disk (includes, CSS, pages). "
+                "Copy kit HTML into pages or write mor-starter.html from Export."
             }
 
             ModuleSlotSelect {
@@ -64,7 +67,7 @@ pub fn TemplateModulesPanel(
             button {
                 class: "editor-button",
                 onclick: move |_| crate::app::config_bridge::EditorPrefs::update_default_template_pack(current_config.template_pack.clone()),
-                "Save as Default Template"
+                "Save as default starter kit"
             }
         }
     }
@@ -153,7 +156,7 @@ pub(crate) const CONTENT_LAYOUTS: &[ModuleDef] = &[
 ];
 
 pub(crate) const LEFT_SIDEBARS: &[ModuleDef] = &[
-    ModuleDef { id: "blogger_left", name: "Blogger Widgets (Labels, Archive)", desc: "Native Blogger widget wrappers for Archives and Labels." },
+    ModuleDef { id: "sidebar_labels", name: "Sidebar labels & archive", desc: "Sidebar chrome for labels and archives (Advanced)." },
 ];
 
 pub(crate) const RIGHT_SIDEBARS: &[ModuleDef] = &[
@@ -185,7 +188,7 @@ pub(crate) fn ModuleFileButton(
         button {
             class: "editor-mini-button",
             style: "padding: 2px 8px; min-height: 22px; font-size: 0.75rem;",
-            title: "Load {label} XML from a file (overrides the dropdown until reset in the Module Workbench)",
+            title: "Load {label} markup from a file (overrides the dropdown until reset in the Module Workbench)",
             onclick: move |_| {
                 let mut status = status;
                 let category = crate::ui::workspace::module_workbench::module_key_to_category(module_key);
@@ -193,8 +196,8 @@ pub(crate) fn ModuleFileButton(
                     .or_else(mor_website_core::utils::fs_bridge::templates_root);
                 spawn(async move {
                     let mut dlg = rfd::AsyncFileDialog::new()
-                        .add_filter("Blogger module XML", &["xml"])
-                        .set_title(format!("Load {label} module XML"));
+                        .add_filter("Module markup", &["xml", "html", "php"])
+                        .set_title(format!("Load {label} module markup"));
                     if let Some(dir) = start_dir {
                         dlg = dlg.set_directory(dir);
                     }

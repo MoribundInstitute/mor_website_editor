@@ -157,9 +157,10 @@ pub fn SmartCodeDock(
     let layout = use_context::<LayoutState>();
     let website = use_context::<WebsiteState>();
     let mut vfs = use_context::<VfsDictionary>().0;
+    let mut original_toml = use_context::<Signal<String>>();
     let mut is_takeover = use_signal(|| false);
     // Shared with Code Nav: true = compiled theme CSS (legacy name).
-    let mut show_xml = layout.code_show_xml;
+    let mut show_compiled = layout.code_show_compiled;
 
     let mut active_key = use_signal(|| String::new());
     let mut buffer = use_signal(String::new);
@@ -191,7 +192,7 @@ pub fn SmartCodeDock(
         use_effect(move || {
             if let Some(target_str) = target_sig() {
                 active_key.set(BUF_THEME_TOML.into());
-                show_xml.set(false);
+                show_compiled.set(false);
                 buffer.set(config_toml());
                 dirty.set(false);
                 reveal_code_target(target_str);
@@ -207,7 +208,7 @@ pub fn SmartCodeDock(
         use_effect(move || {
             if !project_open {
                 if active_key().is_empty() || !active_key().starts_with(':') {
-                    let key = if show_xml() {
+                    let key = if show_compiled() {
                         BUF_COMPILED_CSS
                     } else {
                         BUF_THEME_TOML
@@ -249,18 +250,18 @@ pub fn SmartCodeDock(
         if key == BUF_THEME_TOML {
             buffer.set(config_toml());
             dirty.set(false);
-            show_xml.set(false);
+            show_compiled.set(false);
             status.set(String::new());
             return;
         }
         if key == BUF_COMPILED_CSS {
             buffer.set(export_css());
             dirty.set(false);
-            show_xml.set(true);
+            show_compiled.set(true);
             status.set(String::new());
             return;
         }
-        show_xml.set(false);
+        show_compiled.set(false);
         let project = website.project.peek().clone();
         if !project.is_open() {
             buffer.set(format!("// Open a website folder to edit {key}\n"));
@@ -371,9 +372,25 @@ pub fn SmartCodeDock(
             return;
         }
         if key == BUF_THEME_TOML {
-            crate::utils::io::save_toml(&config_toml());
-            status.set("Saved theme config.".into());
-            dirty.set(false);
+            let toml = config_toml();
+            let project = website.project.peek().clone();
+            if project.is_open() {
+                let path = project.root.join("workspace.toml");
+                match std::fs::write(&path, &toml) {
+                    Ok(()) => {
+                        // Keep File → Save dirty tracking in sync.
+                        original_toml.set(toml);
+                        status.set(format!("Saved {}", path.display()));
+                        dirty.set(false);
+                    }
+                    Err(e) => status.set(format!("Save failed: {e}")),
+                }
+            } else {
+                crate::utils::io::save_toml(&toml);
+                original_toml.set(toml);
+                status.set("Saved theme config (no website folder open).".into());
+                dirty.set(false);
+            }
             return;
         }
         let project = website.project.peek().clone();

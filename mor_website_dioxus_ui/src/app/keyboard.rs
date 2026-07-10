@@ -19,6 +19,16 @@ pub const EDITOR_KEY_GUARD_JS: &str = r#"
     // from hard-reloading the whole editor shell.
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && k === 'r') { e.preventDefault(); }
     if (e.altKey && (k === 'arrowleft' || k === 'arrowright')) { e.preventDefault(); }
+    // Named dock toggles (see use_keyboard_shortcuts) — block menu/browser steals.
+    // Alt alone: I/T/N/R/D/X. Alt+Shift: C/J for CSS/JS (Alt+J alone is file-tab prev).
+    if (e.altKey && !e.ctrlKey && !e.metaKey) {
+      if (!e.shiftKey && (k === 'i' || k === 't' || k === 'n' || k === 'r' || k === 'd' || k === 'x')) {
+        e.preventDefault();
+      }
+      if (e.shiftKey && (k === 'c' || k === 'j')) {
+        e.preventDefault();
+      }
+    }
   }, true);
 })();
 "#;
@@ -75,10 +85,23 @@ pub fn use_keyboard_shortcuts(
                         e.preventDefault(); dioxus.send("dock_" + e.code.slice(5));
                     }
 
-                    if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        if (k === '1') { e.preventDefault(); dioxus.send("layout_split"); }
-                        if (k === '2') { e.preventDefault(); dioxus.send("layout_wide"); }
-                        if (k === '3') { e.preventDefault(); dioxus.send("layout_float"); }
+                    if (e.altKey && !e.ctrlKey && !e.metaKey) {
+                        if (!e.shiftKey) {
+                            if (k === '1') { e.preventDefault(); dioxus.send("layout_split"); }
+                            if (k === '2') { e.preventDefault(); dioxus.send("layout_wide"); }
+                            if (k === '3') { e.preventDefault(); dioxus.send("layout_float"); }
+                            // Named docks — mnemonics (I=Insert, T=Theme, N=pages, R=pResets, D=Diag)
+                            if (k === 'i') { e.preventDefault(); dioxus.send("dock_id:insert"); }
+                            if (k === 't') { e.preventDefault(); dioxus.send("dock_id:theme_palette"); }
+                            if (k === 'n') { e.preventDefault(); dioxus.send("dock_id:site_pages"); }
+                            if (k === 'r') { e.preventDefault(); dioxus.send("dock_id:presets"); }
+                            if (k === 'd') { e.preventDefault(); dioxus.send("dock_id:diagnostics"); }
+                            if (k === 'x') { e.preventDefault(); dioxus.send("dock_id:inspector"); }
+                        } else {
+                            // Alt+Shift: code docks (Alt+J alone is asset-editor “prev tab”)
+                            if (k === 'c') { e.preventDefault(); dioxus.send("dock_id:css_editor"); }
+                            if (k === 'j') { e.preventDefault(); dioxus.send("dock_id:js_editor"); }
+                        }
                     }
                 });
             }
@@ -114,7 +137,9 @@ pub fn use_keyboard_shortcuts(
                             site_data_pos.set(DockPosition::Floating);
                         }
                         other => {
-                            if let Some(n) = other
+                            if let Some(id) = other.strip_prefix("dock_id:") {
+                                layout.toggle_dock_by_id(id);
+                            } else if let Some(n) = other
                                 .strip_prefix("dock_")
                                 .and_then(|s| s.parse::<usize>().ok())
                                 .filter(|&n| n >= 1)

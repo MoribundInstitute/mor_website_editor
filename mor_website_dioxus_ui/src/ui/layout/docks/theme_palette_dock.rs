@@ -107,11 +107,15 @@ pub fn ThemePaletteDock(props: ThemePaletteDockProps) -> Element {
                         }
                     }
 
-                    EditorAccordion { id: "Modules", title: "Template Modules", active: active_tab,
-                        TemplateModulesPanel {
-                            current_config: current_config.clone(),
-                            on_apply_theme: move |new_config: ThemeConfig| {
-                                on_apply_theme.call(new_config);
+                    // Site-first product: structure lives in your PHP/HTML files.
+                    // Starter kits are Advanced-only (optional scaffold, not the main layout model).
+                    if layout.advanced_tools_visible() {
+                        EditorAccordion { id: "Modules", title: "Starter kits (optional)", active: active_tab,
+                            TemplateModulesPanel {
+                                current_config: current_config.clone(),
+                                on_apply_theme: move |new_config: ThemeConfig| {
+                                    on_apply_theme.call(new_config);
+                                }
                             }
                         }
                     }

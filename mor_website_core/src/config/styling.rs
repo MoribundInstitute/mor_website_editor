@@ -342,10 +342,11 @@ impl Default for ButtonConfig {
             text_color: String::new(),
             border_color: String::new(),
             hover_bg_color: String::new(),
-            hover_effect: "none".to_string(),
-            transition_ms: "0ms".to_string(),
-            easing: "ease".to_string(),
-            pressed_feedback: false,
+            // Subtle lift reads well across presets; was "none"/0ms and felt dead.
+            hover_effect: "lift".to_string(),
+            transition_ms: "160ms".to_string(),
+            easing: "cubic-bezier(0.2, 0.8, 0.2, 1)".to_string(),
+            pressed_feedback: true,
             focus_ring_color: String::new(),
             focus_ring_width: "2px".to_string(),
         }

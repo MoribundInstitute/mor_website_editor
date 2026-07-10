@@ -43,7 +43,7 @@ pub fn fallback_compendium() -> Vec<CompendiumManifest> {
             display_name: "SSH Publish".to_string(),
             version: "1.0.0".to_string(),
             description:
-                "Export mor-theme.css and rsync the project to any SSH host (Hostinger defaults available)."
+                "Save theme to the open site and rsync the project to any SSH host (Hostinger defaults available)."
                     .to_string(),
             payload_url: "https://github.com/MoribundInstitute/mor-website-editor-ssh-publish"
                 .to_string(),

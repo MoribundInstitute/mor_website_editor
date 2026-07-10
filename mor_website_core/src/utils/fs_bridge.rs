@@ -134,8 +134,8 @@ const DEFAULT_MODULES: &[(&str, &str, &str)] = &[
     // Sidebars
     (
         "sidebars",
-        "blogger_left.xml",
-        include_str!("../template_parts/sidebars/blogger_left.xml"),
+        "sidebar_labels.xml",
+        include_str!("../template_parts/sidebars/sidebar_labels.xml"),
     ),
     (
         "sidebars",

@@ -46,13 +46,13 @@ pub fn CodeNavDock() -> Element {
         return rsx! {};
     }
 
-    let show_xml = layout.code_show_xml;
+    let show_compiled = layout.code_show_compiled;
     let mut active_target = use_signal(|| None::<String>);
 
     // Reveal this item's anchor in whichever buffer the editor is currently showing.
     let mut on_nav = move |toml_anchor: &str, xml_anchor: &str| {
         active_target.set(Some(toml_anchor.to_string()));
-        let target = if show_xml() { xml_anchor } else { toml_anchor };
+        let target = if show_compiled() { xml_anchor } else { toml_anchor };
         reveal_code_target(target.to_string());
     };
 

@@ -195,7 +195,7 @@ pub fn IconPencil(#[props(default = "16".to_string())] size: String) -> Element 
     }
 }
 
-// ── Gadget-type icons (Add a Gadget picker) ─────────────────────────────────
+// ── Widget-type icons (Insert / Widgets dock) ───────────────────────────────
 
 #[component]
 pub fn IconArticle(#[props(default = "16".to_string())] size: String) -> Element {
@@ -264,9 +264,9 @@ pub fn IconTrash(#[props(default = "16".to_string())] size: String) -> Element {
         }
     }
 }
-/// Icon for a Blogger widget `type=` (used by the gadget picker / Widgets dock).
+/// Icon for a widget/block `type=` (used by the Widgets dock).
 /// Unknown types fall back to the generic plugin icon.
-pub fn gadget_icon(w_type: &str) -> Element {
+pub fn widget_icon(w_type: &str) -> Element {
     match w_type {
         "Blog" => rsx! { IconArticle {} },
         "BlogArchive" => rsx! { IconArchive {} },
@@ -308,6 +308,9 @@ pub mod tool_paths {
     pub const BROWSE: &str = "M4 4l7.2 16.8 2.2-7.4 7.4-2.2z M13.5 13.5L20 20";
     pub const INSPECT: &str = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-3.5-3.5";
     pub const EDIT_PEN: &str = "M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z";
+    /// External browser / open link
+    pub const EXTERNAL_LINK: &str =
+        "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3";
     pub const SELECTION: &str =
         "M12 19a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M12 2v3 M12 19v3 M2 12h3 M19 12h3";
     pub const DESKTOP: &str = "M3 4h18v12H3z M8 20h8 M12 16v4";

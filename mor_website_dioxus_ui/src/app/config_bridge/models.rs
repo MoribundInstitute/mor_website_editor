@@ -52,7 +52,9 @@ pub struct CustomEditorColors {
 pub struct ShortcutPrefs {
     pub undo: Option<String>,
     pub redo: Option<String>,
-    pub copy_raw_xml: Option<String>,
+    /// Copy generated mor-theme.css. Alias keeps old prefs files loading.
+    #[serde(alias = "copy_raw_xml")]
+    pub copy_theme_css: Option<String>,
     pub toggle_left_dock: Option<String>,
     pub toggle_right_dock: Option<String>,
     #[serde(default)]
@@ -65,14 +67,15 @@ pub struct ShortcutPrefs {
     pub theme_diagnostics: Option<String>,
     #[serde(default)]
     pub toggle_preview: Option<String>,
-    #[serde(default)]
-    pub exit_architect: Option<String>,
+    #[serde(default, alias = "exit_architect")]
+    pub exit_editor: Option<String>,
     #[serde(default)]
     pub open_project: Option<String>,
     #[serde(default)]
     pub save_project: Option<String>,
-    #[serde(default)]
-    pub export_xml: Option<String>,
+    /// Save theme config TOML to a chosen path. Alias: legacy `export_xml`.
+    #[serde(default, alias = "export_xml")]
+    pub save_theme_config_as: Option<String>,
     #[serde(default)]
     pub reset_zoom: Option<String>,
     /// Force-refetch the preview page from disk and fully rewrite the iframe
@@ -91,7 +94,7 @@ impl Default for ShortcutPrefs {
             undo: Some("Ctrl+Z".to_string()),
             redo: Some("Ctrl+Y".to_string()),
             // Shift-modified: bare Ctrl+C must stay the system clipboard copy.
-            copy_raw_xml: Some("Ctrl+Shift+C".to_string()),
+            copy_theme_css: Some("Ctrl+Shift+C".to_string()),
             toggle_left_dock: Some("Ctrl+B".to_string()),
             toggle_right_dock: Some("Ctrl+E".to_string()),
             close_left_dock: Some("Ctrl+Shift+Left".to_string()),
@@ -99,10 +102,10 @@ impl Default for ShortcutPrefs {
             user_prefs: Some("Ctrl+P".to_string()),
             theme_diagnostics: Some("Ctrl+D".to_string()),
             toggle_preview: Some("F9".to_string()),
-            exit_architect: Some("Ctrl+Q".to_string()),
+            exit_editor: Some("Ctrl+Q".to_string()),
             open_project: Some("Ctrl+O".to_string()),
             save_project: Some("Ctrl+S".to_string()),
-            export_xml: Some("Shift+Ctrl+E".to_string()),
+            save_theme_config_as: Some("Shift+Ctrl+E".to_string()),
             reset_zoom: Some("Ctrl+0".to_string()),
             hard_refresh_preview: Some("Ctrl+Shift+R".to_string()),
         }

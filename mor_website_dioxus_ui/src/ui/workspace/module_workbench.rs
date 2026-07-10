@@ -27,7 +27,7 @@ fn pick_xml(render: &RenderState, registry_type: &str, id: &str) -> String {
                 "header" => "mor",
                 "layout" => "sidebars",
                 "content" => "blog_standard",
-                "sidebar_left" => "blogger_left",
+                "sidebar_left" => "sidebar_labels",
                 "sidebar_right" => "toc_right",
                 "footer" => "mega",
                 _ => "",
@@ -62,7 +62,7 @@ fn render_module_preview(
     slots: &[widget_layout::WidgetSlot],
 ) -> String {
     let parts = mor_website_core::render::template_resolver::resolve_template_parts(config, vfs);
-    // Decode XML entities: Blogger-escaped CSS into a browser <style>.
+    // Decode XML entities: escaped CSS into a browser <style>.
     let true_css =
         mor_website_core::render::util::unescape_for_style(&render_css_sockets(parts.css, config));
 
@@ -158,14 +158,14 @@ pub fn ModuleWorkbench(
     let mut editing_blueprint: Signal<Option<(String, String)>> = use_signal(|| None);
     let mut show_widgets = use_signal(|| false);
 
-    // Layout view (Blogger-style draggable widget cards) vs raw Code view. Drag state
+    // Layout view (draggable widget cards) vs raw Code view. Drag state
     // tracks the card being dragged and the card it's hovering for the drop.
     let mut layout_view = use_signal(|| true);
     // "Add a Gadget" now lives in the Widgets dock. The "+ Add" buttons set the
     // target (socket key, or None to append) and open that dock; the dock posts the
     // chosen blueprint back via `add_widget_request`, consumed below.
     let edit_state = use_context::<WorkbenchEditState>();
-    let open_gadget_picker = move |target: Option<String>| {
+    let open_block_picker = move |target: Option<String>| {
         let mut es = edit_state;
         es.add_target.set(target);
         let mut l = layout;
@@ -418,7 +418,7 @@ pub fn ModuleWorkbench(
         let mut status = workbench_status;
         spawn(async move {
             let mut dlg = rfd::AsyncFileDialog::new()
-                .add_filter("Blogger module XML", &["xml"])
+                .add_filter("Module markup", &["xml", "html", "php"])
                 .set_file_name(default_name);
             if let Some(dir) = start_dir {
                 dlg = dlg.set_directory(dir);
@@ -576,7 +576,7 @@ pub fn ModuleWorkbench(
                                 }
                                 span {
                                     style: "font-size: 0.7rem; font-weight: 600; color: var(--editor-accent); background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--editor-border-soft);",
-                                    "Blogger XML · Live"
+                                    "Module · Live"
                                 }
                             }
                             div {
@@ -589,7 +589,7 @@ pub fn ModuleWorkbench(
                                 }
                                 button {
                                     class: if !layout_view() { "editor-mini-button editor-mini-button-active" } else { "editor-mini-button" },
-                                    title: "Raw Blogger XML",
+                                    title: "Raw module markup",
                                     onclick: move |_| layout_view.set(false),
                                     "Code"
                                 }
@@ -683,7 +683,7 @@ pub fn ModuleWorkbench(
                         div {
                             style: "display: flex; flex-direction: column; flex: 1; min-height: 0;",
                             if layout_view() {
-                                // ── Layout view ─ draggable Blogger-style widget cards ──
+                                // ── Layout view ─ draggable widget cards ──
                                 div {
                                     style: "flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;",
                                     // Commit a drag on release; cancel if the pointer leaves the list.
@@ -723,8 +723,8 @@ pub fn ModuleWorkbench(
                                                     div { "This module is empty." }
                                                     button {
                                                         class: "editor-button",
-                                                        onclick: move |_| { let mut f = open_gadget_picker; f(None); },
-                                                        "+ Add a Gadget"
+                                                        onclick: move |_| { let mut f = open_block_picker; f(None); },
+                                                        "+ Add block"
                                                     }
                                                 }
                                             }
@@ -840,7 +840,7 @@ pub fn ModuleWorkbench(
                                                                         button {
                                                                             class: "editor-mini-button",
                                                                             title: "Add a widget into this slot",
-                                                                            onclick: move |_| { let mut f = open_gadget_picker; f(Some(key_add.clone())); },
+                                                                            onclick: move |_| { let mut f = open_block_picker; f(Some(key_add.clone())); },
                                                                             "+ Add"
                                                                         }
                                                                     }
@@ -914,8 +914,8 @@ pub fn ModuleWorkbench(
                                                     button {
                                                         class: "editor-button",
                                                         style: "align-self: flex-start; margin-top: 4px;",
-                                                        onclick: move |_| { let mut f = open_gadget_picker; f(None); },
-                                                        "+ Add a Gadget"
+                                                        onclick: move |_| { let mut f = open_block_picker; f(None); },
+                                                        "+ Add block"
                                                     }
                                                 }
                                                 if !field_groups.is_empty() {

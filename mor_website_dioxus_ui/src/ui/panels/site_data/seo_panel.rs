@@ -63,7 +63,7 @@ pub fn FooterPanel(
             label: "Footer Text".to_string(),
             value: footer_text,
             input_type: "text".to_string(),
-            placeholder: "Powered by Blogger.".to_string()
+            placeholder: "Built with MorWebsite.".to_string()
         }
 
         EditorInput {

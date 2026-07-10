@@ -173,12 +173,25 @@
 
 .preview-ribbon.mode-inspect { --mode-color: var(--editor-accent, #58a6ff); }
 .preview-ribbon.mode-edit { --mode-color: var(--d29922, #d29922); }
+.preview-ribbon.mode-view { --mode-color: var(--editor-accent, #6d8fb8); }
 
 /* Mode segment: icon + word; the active segment carries the mode color. */
 .mor-mode-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  transition:
+    border-color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    box-shadow var(--editor-hover-ease);
+}
+
+.mor-mode-btn:hover:not(.is-active) {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
+  color: var(--fg-base, var(--editor-text));
+  box-shadow: var(--editor-hover-glow);
 }
 
 .mor-mode-btn.is-active {
@@ -187,12 +200,17 @@
   background: color-mix(in srgb, var(--mode-color) 12%, transparent);
 }
 
-/* Browse's mode color is the neutral border grey — fine for the hairline,
-   too dim for the active segment's text. Read as plainly active instead. */
+.mor-mode-btn.is-active:hover {
+  background: color-mix(in srgb, var(--mode-color) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mode-color) 30%, transparent);
+}
+
+/* View mode: active segment should stay readable. */
+.preview-ribbon.mode-view .mor-mode-btn.is-active,
 .preview-ribbon.mode-browse .mor-mode-btn.is-active {
-  color: var(--fg-base);
+  color: var(--fg-base, var(--editor-text));
   border-color: var(--editor-border);
-  background: var(--bg-elevated);
+  background: var(--bg-elevated, var(--editor-panel-raised));
 }
 
 /* Ribbon tabs read as tabs, not buttons: quiet until active, then a
@@ -203,15 +221,28 @@
   gap: 5px;
   background: transparent;
   border-color: transparent;
-  color: var(--fg-muted);
+  color: var(--fg-muted, var(--editor-muted));
+  transition:
+    color var(--editor-hover-ease),
+    background var(--editor-hover-ease),
+    border-color var(--editor-hover-ease);
 }
 
-.mor-ribbon-tab:hover { color: var(--fg-base); }
+.mor-ribbon-tab:hover {
+  color: var(--fg-base, var(--editor-text));
+  background: var(--editor-hover-bg);
+  border-color: transparent;
+}
 
 .mor-ribbon-tab.is-active {
-  color: var(--fg-base);
+  color: var(--fg-base, var(--editor-text));
   border-color: var(--editor-border);
-  background: var(--bg-elevated);
+  background: var(--bg-elevated, var(--editor-panel-raised));
+}
+
+.mor-ribbon-tab.is-active:hover {
+  border-color: var(--editor-hover-border);
+  background: var(--editor-hover-bg-strong);
 }
 
 /* Instrument-cluster caption naming a tool group. */

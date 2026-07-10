@@ -76,12 +76,20 @@ const HEADER_TOPBAR: HtmlModule = HtmlModule {
   padding: 0.42rem 0.9rem; border-radius: 999px;
   border: 1px solid var(--border-color);
   color: var(--fg-muted); text-decoration: none; font-size: 0.92rem;
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: color 160ms cubic-bezier(0.2,0.8,0.2,1), border-color 160ms cubic-bezier(0.2,0.8,0.2,1), background 160ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 160ms cubic-bezier(0.2,0.8,0.2,1), transform 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
-.mor-pill:hover, .mor-pill[aria-current="page"] {
+.mor-pill:hover, .mor-pill:focus-visible {
   color: var(--accent);
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+  transform: translateY(-1px);
+  outline: none;
+}
+.mor-pill[aria-current="page"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 "#,
     js: "",
@@ -165,22 +173,37 @@ const SIDEBAR_NAV: HtmlModule = HtmlModule {
 .mor-sidebar-home {
   display: block; padding: 0.45rem 0.6rem; margin-bottom: 0.4rem;
   color: var(--fg-base); text-decoration: none; border-radius: 4px;
+  transition: background 160ms cubic-bezier(0.2,0.8,0.2,1), color 160ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
-.mor-sidebar-home:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.mor-sidebar-home:hover, .mor-sidebar-home:focus-visible {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  outline: none;
+}
 .mor-sidebar-nav details { border-top: 1px solid var(--border-soft, var(--border-color)); padding: 0.35rem 0; }
 .mor-sidebar-nav summary {
   cursor: pointer; list-style: none;
   padding: 0.4rem 0.6rem;
   font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--fg-muted); user-select: none;
+  border-radius: 4px;
+  transition: background 160ms cubic-bezier(0.2,0.8,0.2,1), color 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
+.mor-sidebar-nav summary:hover { background: color-mix(in srgb, var(--fg-base) 6%, transparent); color: var(--fg-base); }
 .mor-sidebar-nav summary::after { content: "▾"; float: right; transition: transform 160ms ease; }
 .mor-sidebar-nav details:not([open]) summary::after { transform: rotate(-90deg); }
 .mor-sidebar-nav nav a {
   display: block; padding: 0.4rem 0.6rem 0.4rem 1rem;
   color: var(--fg-base); text-decoration: none; border-radius: 4px; font-size: 0.95rem;
+  transition: background 160ms cubic-bezier(0.2,0.8,0.2,1), color 160ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 160ms cubic-bezier(0.2,0.8,0.2,1), transform 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
-.mor-sidebar-nav nav a:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.mor-sidebar-nav nav a:hover, .mor-sidebar-nav nav a:focus-visible {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  transform: translateX(2px);
+  outline: none;
+}
 @media (max-width: 760px) { .mor-sidebar-nav { position: static; width: auto; max-height: none; } }
 "#,
     js: "",
@@ -214,9 +237,15 @@ const SIDEBAR_TOC: HtmlModule = HtmlModule {
   display: block; padding: 0.28rem 0.5rem;
   color: var(--fg-muted); text-decoration: none;
   border-left: 2px solid transparent;
+  transition: color 160ms cubic-bezier(0.2,0.8,0.2,1), background 160ms cubic-bezier(0.2,0.8,0.2,1), border-color 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
 .mor-toc-list a.mor-toc-h3 { padding-left: 1.2rem; font-size: 0.85rem; }
-.mor-toc-list a:hover { color: var(--fg-base); }
+.mor-toc-list a:hover, .mor-toc-list a:focus-visible {
+  color: var(--fg-base);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-left-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  outline: none;
+}
 .mor-toc-list a.active { color: var(--accent); border-left-color: var(--accent); }
 @media (max-width: 900px) { .mor-toc-rail { display: none; } }
 "#,
@@ -301,8 +330,13 @@ const FOOTER_GRID: HtmlModule = HtmlModule {
 .mor-footer-grid nav a {
   display: block; padding: 0.3rem 0;
   color: var(--fg-muted); text-decoration: none;
+  transition: color 160ms cubic-bezier(0.2,0.8,0.2,1), transform 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
-.mor-footer-grid nav a:hover { color: var(--accent); }
+.mor-footer-grid nav a:hover, .mor-footer-grid nav a:focus-visible {
+  color: var(--accent);
+  transform: translateX(2px);
+  outline: none;
+}
 .mor-footer-about p { margin: 0; color: var(--fg-muted); line-height: 1.6; }
 .mor-footer-rule {
   margin: 1.6rem auto 0.9rem; max-width: 1100px; border: 0;
@@ -317,8 +351,15 @@ const FOOTER_GRID: HtmlModule = HtmlModule {
   padding: 0.45rem 0.9rem; border-radius: var(--btn-radius, 6px);
   border: 1px solid var(--border-color); background: transparent;
   color: var(--fg-base); cursor: pointer; font-family: inherit;
+  transition: color 160ms cubic-bezier(0.2,0.8,0.2,1), border-color 160ms cubic-bezier(0.2,0.8,0.2,1), background 160ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 160ms cubic-bezier(0.2,0.8,0.2,1), transform 160ms cubic-bezier(0.2,0.8,0.2,1);
 }
-.mor-footer-strip button:hover { border-color: var(--accent); color: var(--accent); }
+.mor-footer-strip button:hover, .mor-footer-strip button:focus-visible {
+  border-color: var(--accent); color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+  transform: translateY(-1px);
+  outline: none;
+}
 "#,
     js: "",
 };

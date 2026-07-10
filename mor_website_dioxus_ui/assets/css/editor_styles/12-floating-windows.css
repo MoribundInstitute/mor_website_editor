@@ -103,6 +103,22 @@
   overflow-x: auto;
 }
 
+.mor-tabs .mor-tab {
+  transition:
+    background var(--editor-hover-ease),
+    color var(--editor-hover-ease),
+    border-color var(--editor-hover-ease);
+}
+
+.mor-tabs .mor-tab:hover:not(.active) {
+  background: var(--editor-hover-bg-strong);
+  color: var(--editor-text);
+}
+
+.mor-tabs .mor-tab.active:hover {
+  background: color-mix(in srgb, var(--editor-accent) 14%, var(--editor-panel-raised));
+}
+
 /* =========================================================
    Keyboard Shortcuts Modal 
    ========================================================= */
