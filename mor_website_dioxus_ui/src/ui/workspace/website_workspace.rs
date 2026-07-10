@@ -2,11 +2,14 @@
 //! code editor, split view, Editor Canvas (Browse | Inspect | Edit), and the
 //! mor-theme.css export surface.
 
-use crate::app::edit_context::{analyze_bound, analyze_dom, link_component, EditContext, SelectionInfo};
+use crate::app::edit_context::{
+    analyze_bound, analyze_dom_facts, link_component, DomSelectFacts, EditContext, SelectionInfo,
+};
 use crate::app::state::{
     CenterView, ContextMenuPayload, LayoutState, RenderState, WebsiteState,
 };
 use crate::ui::workspace::layout::PreviewViewport;
+use crate::ui::workspace::page_map::PageMapWorkspace;
 use crate::ui::workspace::preview_canvas::PreviewCanvas;
 use crate::ui::components::icons::{tool_paths, ToolIcon};
 use crate::ui::workspace::preview_ribbon::PreviewRibbon;
@@ -131,9 +134,9 @@ pub fn WebsiteWorkspace(
     let is_valid = render.diag.read().is_valid;
     let error_count = render.diag.read().errors.len();
     let mut active_icon_picker = layout.active_icon_picker;
-    let is_xray_active = use_signal(|| false);
-    // Third mode state: Edit arms the mutating gestures on top of Inspect.
-    let is_edit_active = use_signal(|| false);
+    // Start in Edit so the canvas is immediately Webflow-like (select + dbl-click).
+    let is_xray_active = use_signal(|| true);
+    let is_edit_active = use_signal(|| true);
     let mut active_xray_target = use_signal(|| None::<String>);
     let site = use_context::<WebsiteState>();
     // Last X-Ray selection, analyzed (LO-style: selection → context → the
@@ -150,14 +153,14 @@ pub fn WebsiteWorkspace(
         active_xray_target.set(Some(target));
     };
 
-    let mut select_unbound = move |(tag, classes): (String, String)| {
-        let mut sel = analyze_dom(&tag, &classes);
+    let mut select_unbound = move |facts: DomSelectFacts| {
+        let mut sel = analyze_dom_facts(&facts);
         // A custom element is a three-part unit: join it with the project's
         // like-named PHP/CSS/JS files so the ribbon can link them.
         if sel.context == EditContext::Component {
             let project = site.project.read();
             sel.component = Some(link_component(
-                &tag,
+                &facts.tag,
                 &project.pages,
                 &project.css_files,
                 &project.js_files,
@@ -178,6 +181,30 @@ pub fn WebsiteWorkspace(
                 crate::app::services::workspace_service::handle_text_edit(&target, val, &cfg)
             {
                 restore.call(config);
+            }
+        }
+    };
+
+    // Webflow-style unbound page text: unique-match replace in the open page file.
+    let apply_page_text = {
+        let site = site;
+        move |(old_t, new_t): (String, String)| {
+            let project = site.project.peek().clone();
+            let page = site
+                .current_page
+                .peek()
+                .clone()
+                .or_else(|| project.default_page().map(str::to_string));
+            let Some(page) = page else {
+                log::warn!("Page text edit: no page selected");
+                return;
+            };
+            match crate::app::services::workspace_service::handle_page_text_edit(
+                &project, &page, &old_t, &new_t,
+            ) {
+                Ok(true) => site.bump_preview(),
+                Ok(false) => {}
+                Err(e) => log::warn!("Page text edit: {e}"),
             }
         }
     };
@@ -342,13 +369,17 @@ pub fn WebsiteWorkspace(
                                 preview_html: preview_html(),
                                 on_navigate: move |href: String| { if let Some(handler) = on_navigate.as_ref() { handler.call(href); } },
                                 on_select: move |target: String| select_bound(target),
-                                on_select_dom: move |facts: (String, String)| select_unbound(facts),
+                                on_select_dom: move |facts: crate::app::edit_context::DomSelectFacts| select_unbound(facts),
                                 on_icon_edit: move |target: String| { active_icon_picker.set(Some(target)); },
                                 on_icon_context_menu: move |payload: ContextMenuPayload| { layout.active_context_menu.set(Some(payload)); },
                                 on_toggle_dark_mode: move |_| { if let Some(handler) = on_toggle_dark_mode.as_ref() { handler.call(()); } },
                                 on_update_value: {
                                     let mutator = apply_text_edit.clone();
                                     move |(target, val): (String, String)| { mutator(target, val, config_toml()); }
+                                },
+                                on_page_text_edit: {
+                                    let mutator = apply_page_text.clone();
+                                    move |pair: (String, String)| { mutator(pair); }
                                 },
                                 on_move_widget: {
                                     let mutator = apply_widget_move.clone();
@@ -375,6 +406,9 @@ pub fn WebsiteWorkspace(
                         error_count,
                     }
                 },
+                CenterView::PageMap => rsx! {
+                    PageMapWorkspace {}
+                },
                 // Preview, plus the retired Blogger workbench views (still enum
                 // variants) all land on the live preview.
                 _ => rsx! {
@@ -387,13 +421,17 @@ pub fn WebsiteWorkspace(
                         preview_html: preview_html(),
                         on_navigate: move |href: String| { if let Some(handler) = on_navigate.as_ref() { handler.call(href); } },
                         on_select: move |target: String| select_bound(target),
-                        on_select_dom: move |facts: (String, String)| select_unbound(facts),
+                        on_select_dom: move |facts: DomSelectFacts| select_unbound(facts),
                         on_icon_edit: move |target: String| { active_icon_picker.set(Some(target)); },
                         on_icon_context_menu: move |payload: ContextMenuPayload| { layout.active_context_menu.set(Some(payload)); },
                         on_toggle_dark_mode: move |_| { if let Some(handler) = on_toggle_dark_mode.as_ref() { handler.call(()); } },
                         on_update_value: {
                             let mutator = apply_text_edit.clone();
                             move |(target, val): (String, String)| { mutator(target, val, config_toml()); }
+                        },
+                        on_page_text_edit: {
+                            let mutator = apply_page_text.clone();
+                            move |pair: (String, String)| { mutator(pair); }
                         },
                         on_move_widget: {
                             let mutator = apply_widget_move.clone();
@@ -444,8 +482,8 @@ fn PagePickerBar() -> Element {
             }
             button {
                 class: "editor-mini-button mor-tool-btn",
-                title: "Refresh preview from disk",
-                onclick: move |_| site.bump_preview(),
+                title: "Hard refresh preview (Ctrl+Shift+R) — refetch from disk, clear cache, reload assets",
+                onclick: move |_| site.hard_refresh_preview(),
                 ToolIcon { d: tool_paths::REFRESH }
             }
         }
@@ -474,7 +512,7 @@ fn WorkspaceTabs(center_view: Signal<CenterView>) -> Element {
         }
         button {
             class: tab(center_view() == CenterView::CodeEditor),
-            title: "Edit the site config as code",
+            title: "Edit page PHP/HTML and related CSS/JS",
             onclick: move |_| layout.enter_workspace(CenterView::CodeEditor),
             ToolIcon { d: tool_paths::CODE }
             span { "Code" }
@@ -485,6 +523,13 @@ fn WorkspaceTabs(center_view: Signal<CenterView>) -> Element {
             onclick: move |_| layout.enter_workspace(CenterView::Split),
             ToolIcon { d: tool_paths::SPLIT }
             span { "Split" }
+        }
+        button {
+            class: tab(center_view() == CenterView::PageMap),
+            title: "Mindmap of CSS, scripts, and PHP includes for a page",
+            onclick: move |_| layout.enter_workspace(CenterView::PageMap),
+            ToolIcon { d: tool_paths::PAGE_MAP }
+            span { "Map" }
         }
         // Export is the terminal pipeline step, so it sits at the far right.
         button {

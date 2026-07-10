@@ -48,6 +48,7 @@ fn StatusBar(config_toml_signal: Memo<String>, original_toml: Signal<String>) ->
     let render = use_context::<RenderState>();
     let theme = use_context::<ThemeState>();
     let edit_state = use_context::<WorkbenchEditState>();
+    let website = use_context::<crate::app::state::WebsiteState>();
 
     let result = render.diag.read();
     let error_count = result.errors.len();
@@ -83,10 +84,16 @@ fn StatusBar(config_toml_signal: Memo<String>, original_toml: Signal<String>) ->
             (layout.preview_width)(),
             (layout.preview_template_mode)().label(),
         ),
-        CenterView::CodeEditor => if (layout.code_show_xml)() {
-            "compiled CSS".to_string()
-        } else {
-            "config TOML".to_string()
+        CenterView::CodeEditor => {
+            let page = (website.current_page)()
+                .or_else(|| website.project.read().default_page().map(str::to_string));
+            if (layout.code_show_xml)() {
+                "compiled CSS".to_string()
+            } else if let Some(p) = page {
+                format!("code · {p}")
+            } else {
+                "code editor".to_string()
+            }
         },
         CenterView::ModuleWorkbench => match (layout.active_workbench_module)() {
             Some(key) => {
@@ -102,6 +109,12 @@ fn StatusBar(config_toml_signal: Memo<String>, original_toml: Signal<String>) ->
         },
         CenterView::StaticPageEditor => {
             (layout.active_static_page)().unwrap_or_else(|| "no page selected".to_string())
+        }
+        CenterView::PageMap => {
+            let page = (website.current_page)()
+                .or_else(|| website.project.read().default_page().map(str::to_string))
+                .unwrap_or_else(|| "no page".into());
+            format!("page map · {page}")
         }
         _ => String::new(),
     };
@@ -233,6 +246,7 @@ pub fn render_app_shell(
     let show_editor_settings = use_signal(|| false);
     let show_shortcuts = use_signal(|| false);
     let show_docs = use_signal(|| false);
+    let show_ssh_publish = use_signal(|| false);
 
     let prefs = use_signal(|| EditorPrefs::load());
 
@@ -360,6 +374,7 @@ pub fn render_app_shell(
                 show_editor_settings,
                 show_shortcuts,
                 show_docs,
+                show_ssh_publish,
                 ui_mode_pref,
                 ui_theme_pref,
                 active_ui_mode: active_ui_mode.clone(),
@@ -372,6 +387,7 @@ pub fn render_app_shell(
                     show_about,
                     show_shortcuts,
                     show_docs,
+                    show_ssh_publish,
 
                     on_new_workspace: move |_| {
                         shell_file_actions::new_workspace(theme, original_toml);
@@ -405,6 +421,9 @@ pub fn render_app_shell(
                     },
                     on_toggle_split: move |_| { center_view.set(CenterView::Split); },
                     on_reset_viewport: move |_| { layout.preview_width.set(1200u32); },
+                    on_hard_refresh: move |_| {
+                        website.hard_refresh_preview();
+                    },
                 }
 
                 MorLayoutChrome {

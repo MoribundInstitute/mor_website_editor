@@ -38,4 +38,25 @@ impl WebsiteState {
         let next = nonce.peek().wrapping_add(1);
         nonce.set(next);
     }
+
+    /// Hard refresh: refetch from disk, drop the iframe morph cache, full
+    /// document rewrite, and cache-bust local CSS/JS so stylesheet edits land.
+    /// Bound to Ctrl+Shift+R (and the View menu / toolbar ↻ button).
+    pub fn hard_refresh_preview(&self) {
+        self.bump_preview();
+        // Fire-and-forget: clear the canvas morph cache immediately so the
+        // upcoming HTML write is a full reload even if the body is unchanged,
+        // and rewrite the current document so JS state resets right away.
+        let _ = dioxus::document::eval(
+            r#"
+            (function () {
+              var src = document.getElementById('mor-preview-html-source');
+              if (src) src._last = null;
+              if (typeof window.__morHardRefreshPreview === 'function') {
+                window.__morHardRefreshPreview();
+              }
+            })();
+            "#,
+        );
+    }
 }

@@ -75,6 +75,14 @@ pub struct ShortcutPrefs {
     pub export_xml: Option<String>,
     #[serde(default)]
     pub reset_zoom: Option<String>,
+    /// Force-refetch the preview page from disk and fully rewrite the iframe
+    /// (clears morph cache + cache-busts local assets). Default: Ctrl+Shift+R.
+    #[serde(default = "default_hard_refresh_preview")]
+    pub hard_refresh_preview: Option<String>,
+}
+
+fn default_hard_refresh_preview() -> Option<String> {
+    Some("Ctrl+Shift+R".to_string())
 }
 
 impl Default for ShortcutPrefs {
@@ -96,6 +104,7 @@ impl Default for ShortcutPrefs {
             save_project: Some("Ctrl+S".to_string()),
             export_xml: Some("Shift+Ctrl+E".to_string()),
             reset_zoom: Some("Ctrl+0".to_string()),
+            hard_refresh_preview: Some("Ctrl+Shift+R".to_string()),
         }
     }
 }

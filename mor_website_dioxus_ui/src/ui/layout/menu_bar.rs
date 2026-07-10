@@ -104,6 +104,7 @@ pub fn AppMenuBar(
     mut show_about: Signal<bool>,
     mut show_shortcuts: Signal<bool>,
     mut show_docs: Signal<bool>,
+    mut show_ssh_publish: Signal<bool>,
     on_new_workspace: EventHandler<()>,
     on_open_folder: EventHandler<()>,
     on_load_theme: EventHandler<()>,
@@ -114,9 +115,12 @@ pub fn AppMenuBar(
     on_toggle_preview: EventHandler<()>,
     on_toggle_split: EventHandler<()>,
     on_reset_viewport: EventHandler<()>,
+    on_hard_refresh: EventHandler<()>,
 ) -> Element {
     let theme = use_context::<ThemeState>();
     let mut layout = use_context::<LayoutState>();
+    let website = use_context::<crate::app::state::WebsiteState>();
+    let project_open = website.project.read().is_open();
 
     // Customized keybinds; chips re-render live when the rebind dialog writes
     // this signal (the dialog also rekeys the live registry — registrations
@@ -157,6 +161,11 @@ pub fn AppMenuBar(
                     label: "Export Site Zip…".to_string(),
                     on_action: move |_| on_export_zip.call(())
                 }
+                MenuItem {
+                    label: "SSH Publish…".to_string(),
+                    disabled: !project_open,
+                    on_action: move |_| show_ssh_publish.set(true),
+                }
                 MenuSeparator {}
                 MenuItem {
                     label: "Exit".to_string(),
@@ -193,6 +202,11 @@ pub fn AppMenuBar(
                     label: "Toggle Preview Monitor".to_string(),
                     shortcut: combo(&sc.toggle_preview),
                     on_action: move |_| on_toggle_preview.call(())
+                }
+                MenuItem {
+                    label: "Hard Refresh Preview".to_string(),
+                    shortcut: combo(&sc.hard_refresh_preview),
+                    on_action: move |_| on_hard_refresh.call(())
                 }
                 MenuItem {
                     label: "Toggle Code Split".to_string(),

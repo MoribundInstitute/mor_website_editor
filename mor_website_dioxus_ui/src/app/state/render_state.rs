@@ -83,10 +83,18 @@ impl RenderState {
         let project_for_preview = website.project;
 
         let current_page_for_preview = website.current_page;
+        let current_config_for_preview = current_config;
         let preview_html = use_memo(move || {
             let raw = raw_page_html();
-            let theme_css = generated_css();
             let is_dark = is_dark_mode();
+            // Hand-rolled sites already ship their own CSS. Injecting the full
+            // preset + module chrome on top reads as a "mix of themes". Use a
+            // token bridge only; Export still builds full mor-theme.css.
+            let theme_css = if project_for_preview.read().is_open() {
+                mor_website_core::website::generate_preview_bridge_css(&current_config_for_preview())
+            } else {
+                generated_css()
+            };
             match server() {
                 Some(info) if project_for_preview.read().is_open() && !raw.is_empty() => {
                     prepare_preview_html(

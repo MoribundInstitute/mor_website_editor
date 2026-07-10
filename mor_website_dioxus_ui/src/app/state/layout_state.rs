@@ -54,6 +54,8 @@ pub enum CenterView {
     CodeEditor,
     Split,
     Export,
+    /// Mindmap of CSS / JS / PHP includes for the selected page.
+    PageMap,
     ModuleWorkbench,
     WidgetWorkbench,
     JsWorkbench,
@@ -293,6 +295,11 @@ impl LayoutState {
             CenterView::Preview | CenterView::Split => {
                 self.theme_palette_pos.set(DockPosition::mor_panel_left);
                 self.site_pages_pos.set(DockPosition::mor_panel_right);
+            }
+            CenterView::PageMap => {
+                // Asset mindmap: free the center; CSS/JS docks open on node click.
+                self.theme_palette_pos.set(DockPosition::Hidden);
+                self.site_pages_pos.set(DockPosition::Hidden);
             }
             _ => {
                 self.theme_palette_pos.set(DockPosition::Hidden);

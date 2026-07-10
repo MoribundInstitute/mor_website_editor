@@ -71,14 +71,16 @@ pub fn PreviewCanvas(
     #[props(default)] edit_active: Option<Signal<bool>>,
     #[props(default)] on_navigate: Option<EventHandler<String>>,
     #[props(default)] on_select: Option<EventHandler<String>>,
-    /// X-Ray click on a node with no marker anywhere up its chain: raw
-    /// (tag, classes) facts — classification happens in Rust (edit_context).
-    #[props(default)] on_select_dom: Option<EventHandler<(String, String)>>,
+    /// X-Ray click on a node with no marker anywhere up its chain: DOM facts
+    /// (tag/classes/href/nav indices) — classification in Rust (edit_context).
+    #[props(default)] on_select_dom: Option<EventHandler<crate::app::edit_context::DomSelectFacts>>,
     /// Last analyzed selection, rendered as the inspect chip overlay.
     #[props(default)] active_selection: Option<Signal<Option<SelectionInfo>>>,
     #[props(default)] on_icon_edit: Option<EventHandler<String>>,
     #[props(default)] on_icon_context_menu: Option<EventHandler<ContextMenuPayload>>,
     #[props(default)] on_update_value: Option<EventHandler<(String, String)>>,
+    /// Unbound page-content edit: (old_text, new_text) → unique replace in page file.
+    #[props(default)] on_page_text_edit: Option<EventHandler<(String, String)>>,
     #[props(default)] on_move_widget: Option<EventHandler<(String, String)>>,
     #[props(default)] on_toggle_dark_mode: Option<EventHandler<()>>,
     #[props(default)] on_drop_svg: Option<EventHandler<(String, String)>>,
@@ -216,8 +218,48 @@ pub fn PreviewCanvas(
                                             // first dark/light toggle (which reloads): the toggle button no
                                             // longer responded. Force a fresh setup on every reload.
                                             doc._inst = false;
+                                            doc._morBodySrc = undefined;
                                             setTimeout(() => setup(doc), 50);
                                         }
+
+                                        // Append ?mor_r=<ts> to same-origin / relative CSS+JS so a hard
+                                        // refresh actually re-fetches stylesheets the browser may have
+                                        // cached from the local preview server.
+                                        function cacheBustLocalAssets(html) {
+                                            var t = Date.now();
+                                            return html.replace(
+                                                /\b(href|src)=(["'])([^"']+)\2/gi,
+                                                function (_m, attr, q, url) {
+                                                    if (/^(data:|blob:|mailto:|javascript:)/i.test(url)) return _m;
+                                                    if (/^https?:\/\//i.test(url) && url.indexOf('127.0.0.1') < 0 && url.indexOf('localhost') < 0) {
+                                                        return _m;
+                                                    }
+                                                    if (!/\.(css|js)(\?|#|$)/i.test(url)) return _m;
+                                                    var bare = url.split('#')[0];
+                                                    var hash = url.indexOf('#') >= 0 ? url.slice(url.indexOf('#')) : '';
+                                                    var sep = bare.indexOf('?') >= 0 ? '&' : '?';
+                                                    // Drop a prior mor_r so repeated hard refreshes stay clean.
+                                                    bare = bare.replace(/([?&])mor_r=\d+&?/g, '$1').replace(/[?&]$/, '');
+                                                    sep = bare.indexOf('?') >= 0 ? '&' : '?';
+                                                    return attr + '=' + q + bare + sep + 'mor_r=' + t + hash + q;
+                                                }
+                                            );
+                                        }
+
+                                        // Ctrl+Shift+R / View → Hard Refresh Preview.
+                                        // Clears the morph cache and force-rewrites the iframe document.
+                                        window.__morHardRefreshPreview = function () {
+                                            var src = document.getElementById(SID);
+                                            var frm = document.getElementById(FID);
+                                            if (src) src._last = null;
+                                            if (!src || !frm) return;
+                                            var html = src.textContent || '';
+                                            if (!html.trim()) return;
+                                            var doc = frm.contentDocument || (frm.contentWindow && frm.contentWindow.document);
+                                            if (!doc) return;
+                                            src._last = html; // avoid a double-write when React/Dioxus re-renders
+                                            reload(doc, cacheBustLocalAssets(html));
+                                        };
 
                                         // Stable identity for an editable node, used to detect structural
                                         // reorders (a widget moving between regions) vs pure content edits.
@@ -320,7 +362,12 @@ html.mor-xray-on [data-edit-target^="icons."]:hover::after{opacity:1}
 html.mor-xray-on [data-edit-target]:not([data-field-path]):not([data-block-id]):not([data-edit-target^="icons."]){outline:2px dotted #a855f7!important;outline-offset:2px;background:rgba(168,85,247,.06)!important;position:relative}
 html.mor-xray-on [data-edit-target]:not([data-field-path]):not([data-block-id]):not([data-edit-target^="icons."])::after{content:attr(data-xray-hint);position:absolute;bottom:calc(100% + 4px);left:0;z-index:10002;padding:2px 6px;border-radius:3px;font:10px/1.3 ui-monospace,monospace;background:#7e22ce;color:#faf5ff;pointer-events:none;white-space:nowrap;max-width:min(280px,90vw);overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .12s ease}
 html.mor-xray-on [data-edit-target]:not([data-field-path]):not([data-block-id]):not([data-edit-target^="icons."]):hover::after{opacity:1}
-html.mor-xray-on .mor-xray-hover{outline:1px dotted #94a3b8!important;outline-offset:1px}`;
+html.mor-xray-on .mor-xray-hover{outline:1px solid rgba(40,149,240,.85)!important;outline-offset:1px;cursor:pointer}
+/* Webflow-like selection chrome */
+html.mor-xray-on .mor-canvas-selected{outline:2px solid #2895f0!important;outline-offset:2px!important;position:relative!important;z-index:50}
+html.mor-xray-on .mor-canvas-selected::before{content:attr(data-mor-sel-label);position:absolute;top:-22px;left:-2px;z-index:100050;padding:3px 7px;border-radius:2px 2px 0 0;font:600 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.02em;background:#2895f0;color:#fff;pointer-events:none;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+html.mor-xray-on .mor-canvas-editing{outline:2px solid #146ef5!important;outline-offset:2px!important;caret-color:#146ef5;min-width:1ch}
+html.mor-xray-on .mor-canvas-editing::before{content:attr(data-mor-sel-label) " · editing";background:#146ef5}`;
 
                                         function widgetRegion(el) {
                                             if (el.closest('.panel-left')) return 'Left';
@@ -401,19 +448,68 @@ html.mor-xray-on .mor-xray-hover{outline:1px dotted #94a3b8!important;outline-of
                                             s.textContent = `html:not(.mor-xray-on) [data-field-path]:hover,[data-mor-edit]:hover{outline:2px dashed #3b82f6;cursor:text} [data-block-id]{cursor:grab;position:relative} .dragging{opacity:0.5} .drag-over{border-top:4px solid #3b82f6}`;
                                             doc.head.appendChild(s);
                                             doc.querySelectorAll('[data-block-id]').forEach(el => el.draggable = true);
-                                            // Inspect hover: exactly one outlined element (marked nodes
-                                            // already carry their own richer outlines).
+
+                                            const TEXT_EDIT = 'h1,h2,h3,h4,h5,h6,p,span,a,li,label,button,td,th,figcaption,blockquote,strong,em,small';
+                                            function selLabel(el) {
+                                                if (!el || el === doc.body || el === doc.documentElement) return 'Body';
+                                                const tag = (el.tagName || 'el').toLowerCase();
+                                                if (el.getAttribute('data-field-path') || el.getAttribute('data-mor-edit')) {
+                                                    return 'Field · ' + (el.getAttribute('data-field-path') || el.getAttribute('data-mor-edit'));
+                                                }
+                                                if (el.getAttribute('data-block-id')) return 'Widget · ' + el.getAttribute('data-block-id');
+                                                if (el.getAttribute('data-edit-target')) return 'Token · ' + el.getAttribute('data-edit-target');
+                                                if (el.id) return tag.toUpperCase() + ' · #' + el.id;
+                                                const cls = (el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className) || '';
+                                                const first = String(cls).trim().split(/\s+/).filter(Boolean)[0];
+                                                if (first) return tag.toUpperCase() + ' · .' + first;
+                                                const pretty = {h1:'Heading 1',h2:'Heading 2',h3:'Heading 3',h4:'Heading 4',h5:'Heading 5',h6:'Heading 6',p:'Paragraph',a:'Link',nav:'Nav',button:'Button',img:'Image',li:'List item',ul:'List',ol:'List',header:'Header',footer:'Footer',main:'Main',section:'Section',article:'Article',span:'Text',div:'Div',aside:'Aside',figure:'Figure',figcaption:'Caption'};
+                                                return pretty[tag] || tag.toUpperCase();
+                                            }
+                                            function clearSelection(doc) {
+                                                doc.querySelectorAll('.mor-canvas-selected').forEach(el => {
+                                                    el.classList.remove('mor-canvas-selected');
+                                                    el.removeAttribute('data-mor-sel-label');
+                                                });
+                                            }
+                                            function selectEl(doc, el) {
+                                                if (!el || el === doc.body || el === doc.documentElement) return;
+                                                clearSelection(doc);
+                                                el.classList.add('mor-canvas-selected');
+                                                el.setAttribute('data-mor-sel-label', selLabel(el));
+                                                doc.__morSel = el;
+                                            }
+
+                                            // Inspect hover: one soft outline under the cursor
                                             doc.addEventListener('mouseover', e => {
                                                 if (!window.__morXrayActive) return;
                                                 if (doc.__morHov) { doc.__morHov.classList.remove('mor-xray-hover'); doc.__morHov = null; }
-                                                if (e.target.closest('[data-edit-target], [data-field-path], [data-block-id]')) return;
-                                                doc.__morHov = e.target;
-                                                e.target.classList.add('mor-xray-hover');
+                                                let t = e.target;
+                                                if (!t || t === doc.body || t === doc.documentElement) return;
+                                                if (t.nodeType !== 1) t = t.parentElement;
+                                                if (!t || t.classList.contains('mor-canvas-selected')) return;
+                                                doc.__morHov = t;
+                                                t.classList.add('mor-xray-hover');
                                             });
+                                            // Webflow-like: double-click any text node to edit in place
                                             doc.addEventListener('dblclick', e => {
-                                                if (window.__morEditActive === false) return; // Browse/Inspect: look, don't touch
-                                                const el = e.target.closest('[data-field-path]');
-                                                if (el) { el.contentEditable = true; el.focus(); }
+                                                if (window.__morEditActive === false) return;
+                                                let el = e.target.closest('[data-field-path],[data-mor-edit]');
+                                                if (!el) el = e.target.closest(TEXT_EDIT);
+                                                if (!el || el.closest('script,style,svg,code,pre,input,textarea,select')) return;
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                selectEl(doc, el);
+                                                el.setAttribute('data-mor-edit-before', el.innerText);
+                                                el.contentEditable = 'true';
+                                                el.classList.add('mor-canvas-editing');
+                                                el.focus();
+                                                try {
+                                                    const r = doc.createRange();
+                                                    r.selectNodeContents(el);
+                                                    const s = doc.defaultView.getSelection();
+                                                    s.removeAllRanges();
+                                                    s.addRange(r);
+                                                } catch (_) {}
                                             });
                                             doc.addEventListener('contextmenu', e => {
                                                 const targetEl = e.target.closest("[data-edit-target^='icons.']");
@@ -447,12 +543,41 @@ html.mor-xray-on .mor-xray-hover{outline:1px dotted #94a3b8!important;outline-of
                                                 }
                                             });
                                             doc.addEventListener('blur', e => {
-                                                const el = e.target.closest('[data-field-path]');
-                                                if (el && el.contentEditable === "true") {
-                                                    el.contentEditable = false;
-                                                    dioxus.send({action: "UPDATE_VALUE", target: el.getAttribute('data-field-path'), value: el.innerText});
+                                                const el = e.target.closest('[contenteditable="true"],[contenteditable=true]');
+                                                if (!el || el.contentEditable !== "true") return;
+                                                el.contentEditable = false;
+                                                el.classList.remove('mor-canvas-editing');
+                                                const before = el.getAttribute('data-mor-edit-before') || '';
+                                                el.removeAttribute('data-mor-edit-before');
+                                                const after = el.innerText;
+                                                const path = el.getAttribute('data-field-path') || el.getAttribute('data-mor-edit');
+                                                if (path) {
+                                                    dioxus.send({action: "UPDATE_VALUE", target: path, value: after});
+                                                } else if (before !== after) {
+                                                    dioxus.send({
+                                                        action: "PAGE_TEXT_EDIT",
+                                                        old_text: before,
+                                                        new_text: after,
+                                                        tag: (el.tagName || '').toLowerCase()
+                                                    });
                                                 }
                                             }, true);
+                                            // Enter commits the edit (Esc cancels)
+                                            doc.addEventListener('keydown', e => {
+                                                const el = doc.activeElement;
+                                                if (!el || el.contentEditable !== 'true') return;
+                                                if (e.key === 'Escape') {
+                                                    e.preventDefault();
+                                                    const before = el.getAttribute('data-mor-edit-before');
+                                                    if (before != null) el.innerText = before;
+                                                    el.contentEditable = false;
+                                                    el.classList.remove('mor-canvas-editing');
+                                                    el.removeAttribute('data-mor-edit-before');
+                                                } else if (e.key === 'Enter' && !e.shiftKey && !/^(H[1-6]|P|LI|DIV|BLOCKQUOTE)$/i.test(el.tagName)) {
+                                                    e.preventDefault();
+                                                    el.blur();
+                                                }
+                                            });
                                             let draggedId = null;
                                             doc.addEventListener('dragstart', e => {
                                                 if (window.__morEditActive === false) { e.preventDefault(); return; }
@@ -506,33 +631,51 @@ html.mor-xray-on .mor-xray-hover{outline:1px dotted #94a3b8!important;outline-of
                                                     } 
                                                 }
                                                 
-                                                // 2. X-Ray Selection Bridge — in Inspect/Edit a click always
-                                                // selects; only Browse lets links navigate and buttons act.
+                                                // 2. X-Ray Selection Bridge — Inspect/Edit: Webflow-like
+                                                // click-to-select any node; Browse lets links navigate.
                                                 if (window.__morXrayActive) {
-                                                    const selectable = e.target.closest('[data-edit-target], [data-field-path], [data-mor-edit], [data-block-id]');
+                                                    // Don't steal clicks while typing in a contentEditable
+                                                    if (e.target.isContentEditable || e.target.closest('[contenteditable="true"]')) return;
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    if (selectable) {
-                                                        // Prefer the edit target (specific token), then the field
-                                                        // binding (Site Contract data-mor-edit or data-field-path),
-                                                        // then the block id (widget wrapper).
-                                                        const targetId = selectable.getAttribute('data-edit-target')
-                                                            || selectable.getAttribute('data-field-path')
-                                                            || selectable.getAttribute('data-mor-edit')
-                                                            || selectable.getAttribute('data-block-id');
+                                                    let pick = e.target.closest('[data-edit-target], [data-field-path], [data-mor-edit], [data-block-id]');
+                                                    if (!pick) {
+                                                        pick = e.target.closest(TEXT_EDIT + ',div,section,article,nav,header,footer,aside,main,img,figure');
+                                                    }
+                                                    if (!pick || pick === doc.body || pick === doc.documentElement) {
+                                                        pick = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+                                                    }
+                                                    if (pick && pick !== doc.body && pick !== doc.documentElement) {
+                                                        // Sidebar nav: always select the <a.mor-sidebar__item>
+                                                        // so href/group/item indices are available for editing.
+                                                        const navItem = pick.closest
+                                                            ? pick.closest('a.mor-sidebar__item, .mor-sidebar__item')
+                                                            : null;
+                                                        if (navItem) pick = navItem;
+                                                        selectEl(doc, pick);
+                                                        const targetId = pick.getAttribute('data-edit-target')
+                                                            || pick.getAttribute('data-field-path')
+                                                            || pick.getAttribute('data-mor-edit')
+                                                            || pick.getAttribute('data-block-id');
                                                         if (targetId) {
                                                             dioxus.send({action: "SELECT", target: targetId});
+                                                        } else {
+                                                            const cls = pick.className;
+                                                            const labelEl = pick.querySelector
+                                                                ? pick.querySelector('.mor-sidebar__item-label')
+                                                                : null;
+                                                            dioxus.send({
+                                                                action: "SELECT_DOM",
+                                                                tag: pick.tagName.toLowerCase(),
+                                                                classes: (cls && cls.baseVal !== undefined ? cls.baseVal : cls) || '',
+                                                                label: selLabel(pick),
+                                                                href: pick.getAttribute && pick.getAttribute('href') || '',
+                                                                text: (labelEl && labelEl.innerText)
+                                                                    || (pick.innerText || '').trim().slice(0, 80),
+                                                                nav_group: pick.getAttribute && pick.getAttribute('data-group-index'),
+                                                                nav_item: pick.getAttribute && pick.getAttribute('data-item-index')
+                                                            });
                                                         }
-                                                    } else {
-                                                        // Unbound node: report raw facts only — the Rust side
-                                                        // classifies (and never edits DOM without a binding).
-                                                        const cls = e.target.className;
-                                                        dioxus.send({
-                                                            action: "SELECT_DOM",
-                                                            tag: e.target.tagName.toLowerCase(),
-                                                            // SVG className is an SVGAnimatedString
-                                                            classes: (cls && cls.baseVal !== undefined ? cls.baseVal : cls) || ''
-                                                        });
                                                     }
                                                     return;
                                                 }
@@ -579,8 +722,35 @@ html.mor-xray-on .mor-xray-hover{outline:1px dotted #94a3b8!important;outline-of
                                             "SELECT_DOM" => {
                                                 if let Some(tag) = json.get("tag").and_then(|t| t.as_str()) {
                                                     let classes = json.get("classes").and_then(|c| c.as_str()).unwrap_or("");
+                                                    let href = json
+                                                        .get("href")
+                                                        .and_then(|h| h.as_str())
+                                                        .filter(|s| !s.is_empty())
+                                                        .map(str::to_string);
+                                                    let text = json
+                                                        .get("text")
+                                                        .and_then(|t| t.as_str())
+                                                        .filter(|s| !s.is_empty())
+                                                        .map(str::to_string);
+                                                    let parse_idx = |k: &str| {
+                                                        json.get(k).and_then(|v| {
+                                                            v.as_u64()
+                                                                .map(|n| n as usize)
+                                                                .or_else(|| {
+                                                                    v.as_str().and_then(|s| s.parse().ok())
+                                                                })
+                                                        })
+                                                    };
+                                                    let facts = crate::app::edit_context::DomSelectFacts {
+                                                        tag: tag.to_string(),
+                                                        classes: classes.to_string(),
+                                                        href,
+                                                        text,
+                                                        nav_group: parse_idx("nav_group"),
+                                                        nav_item: parse_idx("nav_item"),
+                                                    };
                                                     if let Some(handler) = on_select_dom.as_ref() {
-                                                        handler.call((tag.to_string(), classes.to_string()));
+                                                        handler.call(facts);
                                                     }
                                                 }
                                             }
@@ -597,6 +767,16 @@ html.mor-xray-on .mor-xray-hover{outline:1px dotted #94a3b8!important;outline-of
                                             "UPDATE_VALUE" => {
                                                 if let (Some(target), Some(val)) = (json.get("target").and_then(|t| t.as_str()), json.get("value").and_then(|v| v.as_str())) {
                                                     if let Some(handler) = on_update_value.as_ref() { handler.call((target.to_string(), val.to_string())); }
+                                                }
+                                            }
+                                            "PAGE_TEXT_EDIT" => {
+                                                if let (Some(old_t), Some(new_t)) = (
+                                                    json.get("old_text").and_then(|t| t.as_str()),
+                                                    json.get("new_text").and_then(|t| t.as_str()),
+                                                ) {
+                                                    if let Some(handler) = on_page_text_edit.as_ref() {
+                                                        handler.call((old_t.to_string(), new_t.to_string()));
+                                                    }
                                                 }
                                             }
                                             "MOVE_WIDGET" => {

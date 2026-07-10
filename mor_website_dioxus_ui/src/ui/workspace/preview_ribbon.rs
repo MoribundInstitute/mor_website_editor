@@ -64,7 +64,7 @@ pub fn PreviewModeTabs(
             }
             button {
                 class: seg(mode == "edit"),
-                title: "Edit — Inspect plus dbl-click text, drag widgets, drop/shift-click icons",
+                title: "Edit — click to select (Webflow-style), double-click text to type, drag widgets, shift-click icons",
                 onclick: move |_| { is_xray_active.set(true); is_edit_active.set(true); },
                 ToolIcon { d: tool_paths::EDIT_PEN }
                 span { "Edit" }
@@ -141,6 +141,7 @@ pub fn PreviewRibbon(
             EditContext::Widget => "Widget",
             EditContext::Component => "Component",
             EditContext::SiteField => "Site field",
+            EditContext::NavLink => "Nav link",
             EditContext::CodeOnly => "Selection",
         })
         .unwrap_or("Selection");
@@ -462,9 +463,147 @@ fn SelectionTabGroups(active_selection: Signal<Option<SelectionInfo>>) -> Elemen
                     }
                 }
             },
+            (EditContext::NavLink, _) => rsx! {
+                NavLinkEditors { active_selection }
+            },
             // SiteField/Widget: the canvas chip identifies them and the
             // code-reveal path already fires on select. CodeOnly: no action.
             _ => rsx! {},
+        }
+    }
+}
+
+fn persist_nav_link(
+    website: crate::app::state::WebsiteState,
+    mut active_selection: Signal<Option<SelectionInfo>>,
+    mut status: Signal<String>,
+    group: usize,
+    item: usize,
+    new_href: Option<String>,
+    new_label: Option<String>,
+) {
+    let project = website.project.peek().clone();
+    match crate::app::services::workspace_service::handle_nav_link_edit(
+        &project,
+        group,
+        item,
+        new_href.as_deref(),
+        new_label.as_deref(),
+    ) {
+        Ok(()) => {
+            if let Some(mut s) = active_selection() {
+                if let Some(ref mut n) = s.nav {
+                    if let Some(ref h) = new_href {
+                        n.href = h.clone();
+                    }
+                    if let Some(ref l) = new_label {
+                        n.label = l.clone();
+                        s.label = format!("Nav link · {l}");
+                    }
+                }
+                active_selection.set(Some(s));
+            }
+            website.bump_preview();
+            status.set("Saved".into());
+        }
+        Err(e) => status.set(e),
+    }
+}
+
+/// Inline editors for a sidebar nav item's label + href (saved to
+/// `components/mor-nav-data.js`).
+#[component]
+fn NavLinkEditors(mut active_selection: Signal<Option<SelectionInfo>>) -> Element {
+    let website = use_context::<crate::app::state::WebsiteState>();
+    let Some(sel) = active_selection() else {
+        return rsx! {};
+    };
+    let Some(nav) = sel.nav.clone() else {
+        return rsx! {};
+    };
+
+    let mut href = use_signal(|| nav.href.clone());
+    let mut label = use_signal(|| nav.label.clone());
+    let mut status = use_signal(String::new);
+    // Resync local fields when a different nav item is selected.
+    use_effect(move || {
+        if let Some(s) = active_selection() {
+            if let Some(n) = s.nav {
+                href.set(n.href);
+                label.set(n.label);
+                status.set(String::new());
+            }
+        }
+    });
+
+    let group = nav.group;
+    let item = nav.item;
+
+    rsx! {
+        div {
+            class: "preview-toolbar-group",
+            style: "margin: 0; align-items: center;",
+            GroupCaption { text: "Link" }
+            label {
+                class: "preview-width-control",
+                span { class: "preview-width-label", "Label" }
+                input {
+                    class: "preview-width-input",
+                    r#type: "text",
+                    style: "width: 120px;",
+                    value: "{label}",
+                    title: "Display label in the sidebar",
+                    oninput: move |e| label.set(e.value()),
+                    onkeydown: move |e| {
+                        if e.key() == Key::Enter {
+                            persist_nav_link(
+                                website, active_selection, status, group, item,
+                                None, Some(label()),
+                            );
+                        }
+                    },
+                    onblur: move |_| {
+                        persist_nav_link(
+                            website, active_selection, status, group, item,
+                            None, Some(label()),
+                        );
+                    },
+                }
+            }
+            label {
+                class: "preview-width-control",
+                span { class: "preview-width-label", "URL" }
+                input {
+                    class: "preview-width-input",
+                    r#type: "text",
+                    style: "width: 200px;",
+                    value: "{href}",
+                    title: "Where this sidebar item links (saved to components/mor-nav-data.js)",
+                    placeholder: "/page.php or https://…",
+                    oninput: move |e| href.set(e.value()),
+                    onkeydown: move |e| {
+                        if e.key() == Key::Enter {
+                            persist_nav_link(
+                                website, active_selection, status, group, item,
+                                Some(href()), None,
+                            );
+                        }
+                    },
+                    onblur: move |_| {
+                        persist_nav_link(
+                            website, active_selection, status, group, item,
+                            Some(href()), None,
+                        );
+                    },
+                }
+            }
+            if !status().is_empty() {
+                span {
+                    style: "font-size: 0.7rem; color: var(--fg-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                    title: "{status}",
+                    "{status}"
+                }
+            }
         }
     }
 }

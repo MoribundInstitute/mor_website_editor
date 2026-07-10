@@ -7,6 +7,7 @@ pub mod advanced_typography_dialog;
 pub mod documentation_dialog;
 pub mod modal;
 pub mod shortcuts_dialog;
+pub mod ssh_publish_dialog;
 pub mod toml_quick_edit;
 pub mod template_grid_dialog;
 pub mod user_preferences_dialog;

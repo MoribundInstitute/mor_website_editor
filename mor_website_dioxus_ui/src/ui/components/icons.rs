@@ -323,4 +323,7 @@ pub mod tool_paths {
     pub const SPLIT: &str = "M3 5h18v14H3z M12 5v14";
     pub const EXPORT: &str = "M12 15V3 M7 8l5-5 5 5 M5 21h14";
     pub const COLLAPSE_UP: &str = "m6 15 6-6 6 6";
+    /// Mindmap / page-asset graph (center node + satellites).
+    pub const PAGE_MAP: &str =
+        "M12 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M19 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M12 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M12 8v7 M10.2 9.5 6.2 15 M13.8 9.5l4 5.5";
 }

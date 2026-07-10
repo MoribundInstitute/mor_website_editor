@@ -15,6 +15,9 @@ pub const EDITOR_KEY_GUARD_JS: &str = r#"
   window.addEventListener('keydown', function(e){
     var k = (e.key || '').toLowerCase();
     if ((e.ctrlKey || e.metaKey) && (k === 's' || k === 'w')) { e.preventDefault(); }
+    // Ctrl/Cmd+Shift+R is owned by Hard Refresh Preview — stop the webview
+    // from hard-reloading the whole editor shell.
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && k === 'r') { e.preventDefault(); }
     if (e.altKey && (k === 'arrowleft' || k === 'arrowright')) { e.preventDefault(); }
   }, true);
 })();

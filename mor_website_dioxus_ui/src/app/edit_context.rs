@@ -22,6 +22,8 @@ pub enum EditContext {
     /// A custom element (`<my-card>`) — its PHP/CSS/JS parts are the unit
     /// of editing, linked by filename convention (see [`link_component`]).
     Component,
+    /// Left sidebar / site nav item from `components/mor-nav-data.js`.
+    NavLink,
     /// No path back to `ThemeConfig` — inspect only, never editable here.
     CodeOnly,
 }
@@ -34,9 +36,19 @@ impl EditContext {
             EditContext::Widget => "Widget",
             EditContext::TokenSurface => "Theme tokens",
             EditContext::Component => "Web component",
+            EditContext::NavLink => "Nav link",
             EditContext::CodeOnly => "No binding",
         }
     }
+}
+
+/// A sidebar (or similar) nav item that maps into `MorNavData`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NavLinkEdit {
+    pub group: usize,
+    pub item: usize,
+    pub href: String,
+    pub label: String,
 }
 
 /// The three parts of a web component, resolved to project-relative paths.
@@ -93,6 +105,19 @@ pub struct SelectionInfo {
     /// For [`EditContext::Component`]: the tag's PHP/CSS/JS parts. Filled by
     /// the workspace (it owns the project file lists), not the analyzer.
     pub component: Option<ComponentLink>,
+    /// For [`EditContext::NavLink`]: indices + current href/label.
+    pub nav: Option<NavLinkEdit>,
+}
+
+/// Facts from an unbound DOM click (preview canvas → workspace).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DomSelectFacts {
+    pub tag: String,
+    pub classes: String,
+    pub href: Option<String>,
+    pub text: Option<String>,
+    pub nav_group: Option<usize>,
+    pub nav_item: Option<usize>,
 }
 
 /// A marker-carrying node was clicked: classify its binding path.
@@ -117,7 +142,59 @@ pub fn analyze_bound(target: &str) -> SelectionInfo {
         palette_tab,
         label: format!("{} · {}", context.name(), target),
         component: None,
+        nav: None,
     }
+}
+
+/// Classify an unbound DOM click. Sidebar nav items become [`EditContext::NavLink`]
+/// so the ribbon can edit their href in `mor-nav-data.js`.
+pub fn analyze_dom_facts(facts: &DomSelectFacts) -> SelectionInfo {
+    let is_sidebar_item = facts.classes.split_whitespace().any(|c| c == "mor-sidebar__item")
+        || facts.classes.contains("mor-sidebar__item-label")
+        || facts.classes.contains("mor-sidebar__item-icon");
+    if let (Some(group), Some(item)) = (facts.nav_group, facts.nav_item) {
+        let href = facts.href.clone().unwrap_or_default();
+        let label = facts
+            .text
+            .clone()
+            .filter(|t| !t.trim().is_empty())
+            .unwrap_or_else(|| format!("item {group}.{item}"));
+        return SelectionInfo {
+            context: EditContext::NavLink,
+            binding: Some(format!("nav[{group}].items[{item}].href")),
+            palette_tab: None,
+            label: format!("Nav link · {label}"),
+            component: None,
+            nav: Some(NavLinkEdit {
+                group,
+                item,
+                href,
+                label,
+            }),
+        };
+    }
+    // Fallback: `<a class="mor-sidebar__item">` without indices still shows
+    // as a link surface so the user can see the href even if data attrs missing.
+    if is_sidebar_item || (facts.tag == "a" && facts.href.is_some()) {
+        if is_sidebar_item {
+            let href = facts.href.clone().unwrap_or_default();
+            let label = facts.text.clone().unwrap_or_else(|| "Nav item".into());
+            return SelectionInfo {
+                context: EditContext::NavLink,
+                binding: None,
+                palette_tab: None,
+                label: format!("Nav link · {label}"),
+                component: None,
+                nav: Some(NavLinkEdit {
+                    group: 0,
+                    item: 0,
+                    href,
+                    label,
+                }),
+            };
+        }
+    }
+    analyze_dom(&facts.tag, &facts.classes)
 }
 
 /// An unbound DOM node was clicked (no marker anywhere up its chain):
@@ -134,6 +211,7 @@ pub fn analyze_dom(tag: &str, classes: &str) -> SelectionInfo {
             palette_tab: None,
             label: format!("<{tag}> · web component"),
             component: None, // workspace joins with project files
+            nav: None,
         };
     }
     let palette_tab = match tag {
@@ -162,6 +240,7 @@ pub fn analyze_dom(tag: &str, classes: &str) -> SelectionInfo {
             palette_tab: Some(tab),
             label: format!("{sel} · {tab} tokens"),
             component: None,
+            nav: None,
         },
         None => SelectionInfo {
             context: EditContext::CodeOnly,
@@ -169,6 +248,7 @@ pub fn analyze_dom(tag: &str, classes: &str) -> SelectionInfo {
             palette_tab: None,
             label: format!("{sel} · no config binding — edit in your site files"),
             component: None,
+            nav: None,
         },
     }
 }
@@ -199,6 +279,24 @@ mod tests {
         assert_eq!(img.context, EditContext::CodeOnly);
         assert_eq!(img.binding, None);
         assert!(img.label.contains("no config binding"));
+    }
+
+    #[test]
+    fn sidebar_nav_item_is_nav_link() {
+        let facts = DomSelectFacts {
+            tag: "a".into(),
+            classes: "mor-sidebar__item".into(),
+            href: Some("/Murdoverse.php".into()),
+            text: Some("Murdoch Content".into()),
+            nav_group: Some(2),
+            nav_item: Some(2),
+        };
+        let sel = analyze_dom_facts(&facts);
+        assert_eq!(sel.context, EditContext::NavLink);
+        let nav = sel.nav.expect("nav");
+        assert_eq!(nav.href, "/Murdoverse.php");
+        assert_eq!(nav.group, 2);
+        assert_eq!(nav.item, 2);
     }
 
     #[test]

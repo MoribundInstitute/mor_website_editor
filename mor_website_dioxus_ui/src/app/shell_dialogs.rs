@@ -7,6 +7,7 @@ use crate::ui::dialogs::advanced_presets_dialog::AdvancedPresetsDialog;
 use crate::ui::dialogs::advanced_typography_dialog::AdvancedTypographyDialog;
 use crate::ui::dialogs::documentation_dialog::DocumentationDialog;
 use crate::ui::dialogs::shortcuts_dialog::ShortcutsDialog;
+use crate::ui::dialogs::ssh_publish_dialog::SshPublishDialog;
 use crate::ui::dialogs::template_grid_dialog::TemplateGridDialog;
 use crate::ui::dialogs::user_preferences_dialog::UserPreferencesDialog;
 use crate::ui::dialogs::workspace_settings_dialog::{
@@ -23,6 +24,7 @@ pub struct MorDialogsProps {
     pub show_editor_settings: Signal<bool>,
     pub show_shortcuts: Signal<bool>,
     pub show_docs: Signal<bool>,
+    pub show_ssh_publish: Signal<bool>,
     pub ui_mode_pref: Signal<String>,
     pub ui_theme_pref: Signal<String>,
     pub active_ui_mode: String,
@@ -50,6 +52,8 @@ pub fn MorDialogs(props: MorDialogsProps) -> Element {
         ShortcutsDialog { open: props.show_shortcuts }
 
         DocumentationDialog { open: props.show_docs }
+
+        SshPublishDialog { open: props.show_ssh_publish }
 
         AdvancedPresetsDialog {
             open: theme.show_advanced_presets,

@@ -19,6 +19,8 @@ use crate::render::css_builder::build_master_css;
 use crate::render::xml_parts::css_generator::render_css_sockets;
 
 pub mod html_modules;
+pub mod page_assets;
+pub mod publish_protect;
 
 pub const THEME_CSS_FILENAME: &str = "mor-theme.css";
 pub const THEME_JS_FILENAME: &str = "mor-theme.js";
@@ -222,6 +224,92 @@ pub fn export_theme_css(project: &WebsiteProject, config: &ThemeConfig) -> io::R
     let dest = project.root.join(THEME_CSS_FILENAME);
     std::fs::write(&dest, generate_theme_css(config))?;
     Ok(dest)
+}
+
+/// Lightweight token bridge for hand-rolled website previews.
+///
+/// Full [`generate_theme_css`] includes module chrome + `preset_css`, which
+/// fights a site that already ships its own CSS (looks.css, etc.) and makes
+/// the preview look like two themes layered. This emits **only** CSS variables
+/// so the ribbon palette can still retint tokens without re-skinning layout.
+pub fn generate_preview_bridge_css(config: &ThemeConfig) -> String {
+    use crate::presets::resolve_palette_pair;
+
+    let (light, dark) = resolve_palette_pair(
+        config.active_preset_id.as_deref(),
+        config.active_variant_id.as_deref(),
+        config,
+    );
+
+    let panel = |c: &crate::config::ColorConfig| c.bg_panel.to_css();
+    let elev = |c: &crate::config::ColorConfig| c.bg_elevated.to_css();
+
+    format!(
+        r#"/* mor-theme bridge — tokens only (site CSS owns chrome) */
+:root {{
+  --bg-base: {dbg};
+  --bg-panel: {dpanel};
+  --bg-elevated: {delev};
+  --bg-workspace: {dbg};
+  --fg-base: {dfg};
+  --fg-muted: {dmuted};
+  --fg-dim: {dfg};
+  --accent: {dacc};
+  --border-color: {dborder};
+  --theme-border-color: {dborder};
+  --link-color: {dfg};
+  --link-visited: {dmuted};
+  --font-body: {body};
+  --font-heading: {heading};
+  --font-display: {heading};
+  --font-mono: {mono};
+  --font-size-base: {size};
+  --line-height-body: {lh};
+  color-scheme: dark;
+}}
+html[data-theme="light"] {{
+  --bg-base: {lbg};
+  --bg-panel: {lpanel};
+  --bg-elevated: {lelev};
+  --bg-workspace: {lbg};
+  --fg-base: {lfg};
+  --fg-muted: {lmuted};
+  --fg-dim: {lfg};
+  --accent: {lacc};
+  --border-color: {lborder};
+  --theme-border-color: {lborder};
+  --link-color: {lacc};
+  --link-visited: #0b0080;
+  --font-body: sans-serif;
+  --font-heading: sans-serif;
+  --font-display: sans-serif;
+  color-scheme: light;
+}}
+"#,
+        dbg = dark.colors.bg_base,
+        dpanel = panel(&dark.colors),
+        delev = elev(&dark.colors),
+        dfg = dark.colors.fg_base,
+        dmuted = dark.colors.fg_muted,
+        dacc = dark.colors.accent,
+        dborder = dark.colors.border,
+        body = config.typography.body_font_stack,
+        heading = if config.typography.heading_font_stack.is_empty() {
+            &config.typography.body_font_stack
+        } else {
+            &config.typography.heading_font_stack
+        },
+        mono = config.typography.mono_font_stack,
+        size = config.typography.base_size,
+        lh = config.typography.line_height,
+        lbg = light.colors.bg_base,
+        lpanel = panel(&light.colors),
+        lelev = elev(&light.colors),
+        lfg = light.colors.fg_base,
+        lmuted = light.colors.fg_muted,
+        lacc = light.colors.accent,
+        lborder = light.colors.border,
+    )
 }
 
 /// The `<link>` snippet a site adds to consume the exported stylesheet.
