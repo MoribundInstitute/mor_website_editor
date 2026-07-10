@@ -10,6 +10,7 @@ pub mod config_bridge;
 pub mod edit_context;
 pub mod hotswap;
 pub mod keyboard;
+pub mod plugin_registry;
 mod restore_drop;
 pub mod robot_session;
 pub mod services;

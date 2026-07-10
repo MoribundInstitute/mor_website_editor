@@ -4,7 +4,7 @@ use super::state::{
     CenterView, DockPosition, LayoutState, PluginManagerContext, RenderState, ThemeState,
 };
 use mor_website_core::diagnostics::Severity;
-use crate::app::config_bridge::{CompendiumManifest, EditorPrefs};
+use crate::app::config_bridge::EditorPrefs;
 use crate::ui::layout::menu_bar::AppMenuBar;
 use crate::ui::layout::theme::MorStyleProvider;
 use crate::ui::layout::window_frame::{MorHeaderBar, MorShell, MorWindowTitle};
@@ -15,47 +15,6 @@ use super::shell_layout::{DockLocalSignals, FloatingWindowManager, MorLayoutChro
 
 const EDITOR_UI_CSS: &str = include_str!("../../assets/css/editor_ui.css");
 use crate::ui::components::code_editor::CM6_BUNDLE_JS;
-
-fn fallback_compendium() -> Vec<CompendiumManifest> {
-    vec![
-        CompendiumManifest {
-            id: "os_chameleon".to_string(),
-            display_name: "OS Chameleon".to_string(),
-            version: "1.0.0".to_string(),
-            description:
-                "Automatically toggles dark mode based on the user's OS preference. Offline fallback entry for the marketplace."
-                    .to_string(),
-            payload_url: "".to_string(),
-        },
-        CompendiumManifest {
-            id: "notification_bell".to_string(),
-            display_name: "Notification Bell".to_string(),
-            version: "1.0.0".to_string(),
-            description:
-                "A header bell that opens a dropdown previewing your newest post. Colors follow the active theme."
-                    .to_string(),
-            payload_url: "".to_string(),
-        },
-        CompendiumManifest {
-            id: "mcp_bridge".to_string(),
-            display_name: "MCP AI Bridge".to_string(),
-            version: "1.0.0".to_string(),
-            description:
-                "One-click install of the MorWebsite MCP engine (GitHub: MoribundMurdoch/mor-website-editor-mcp). Opt-in; editor stays offline otherwise."
-                    .to_string(),
-            payload_url: "https://github.com/MoribundMurdoch/mor-website-editor-mcp".to_string(),
-        },
-        CompendiumManifest {
-            id: "ssh_publish".to_string(),
-            display_name: "SSH Publish".to_string(),
-            version: "1.0.0".to_string(),
-            description:
-                "Export mor-theme.css and rsync the project to any SSH host (Hostinger defaults available)."
-                    .to_string(),
-            payload_url: "".to_string(),
-        },
-    ]
-}
 
 #[derive(Clone, Copy)]
 pub struct WorkbenchEditState {
@@ -285,7 +244,9 @@ pub fn render_app_shell(
     provide_context(crate::ui::components::code_editor::MinimapOverrides(minimap_overrides));
     let launch_plugins = use_signal(|| prefs().plugins.clone());
     let current_plugins = use_signal(|| prefs().plugins.clone());
-    let mut compendium_registry = use_signal(|| Vec::<CompendiumManifest>::new());
+    // Seed immediately so Plugin Manager never opens empty while waiting on network.
+    let mut compendium_registry =
+        use_signal(crate::app::plugin_registry::fallback_compendium);
 
     provide_context(PluginManagerContext {
         launch_plugins,
@@ -310,28 +271,14 @@ pub fn render_app_shell(
 
     use_effect(move || {
         spawn(async move {
-            let target_url = "https://raw.githubusercontent.com/MoribundInstitute/mor-website-theme-editor-plugin-compendium/main/registry.json";
-            let Ok(res) = reqwest::get(target_url).await else {
-                log::warn!("Network request completely failed. Triggering fallback.");
-                compendium_registry.set(fallback_compendium());
-                return;
-            };
-
-            if !res.status().is_success() {
-                log::warn!(
-                    "GitHub returned a {} status. Triggering fallback.",
-                    res.status()
-                );
-                compendium_registry.set(fallback_compendium());
-                return;
+            let (list, warn) = crate::app::plugin_registry::fetch_marketplace(
+                crate::app::plugin_registry::DEFAULT_MARKETPLACE_URL,
+            )
+            .await;
+            if let Some(msg) = warn {
+                log::warn!("[plugin marketplace] {msg}");
             }
-
-            let Ok(remote_registry) = res.json::<Vec<CompendiumManifest>>().await else {
-                compendium_registry.set(fallback_compendium());
-                return;
-            };
-
-            compendium_registry.set(remote_registry);
+            compendium_registry.set(list);
         });
     });
 

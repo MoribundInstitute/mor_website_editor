@@ -1,0 +1,30 @@
+[
+  {
+    "id": "mcp_bridge",
+    "display_name": "MCP AI Bridge",
+    "version": "0.1.0",
+    "description": "One-click install of the MorWebsite MCP engine (MoribundMurdoch/mor-website-editor-mcp). Opt-in Robot Assist; editor stays offline otherwise.",
+    "payload_url": "https://github.com/MoribundMurdoch/mor-website-editor-mcp"
+  },
+  {
+    "id": "os_chameleon",
+    "display_name": "OS Chameleon",
+    "version": "1.0.0",
+    "description": "Automatically toggles dark mode based on the user's OS preference.",
+    "payload_url": ""
+  },
+  {
+    "id": "notification_bell",
+    "display_name": "Notification Bell",
+    "version": "1.0.0",
+    "description": "A header bell that opens a dropdown previewing your newest post. Colors follow the active theme.",
+    "payload_url": ""
+  },
+  {
+    "id": "ssh_publish",
+    "display_name": "SSH Publish",
+    "version": "1.0.0",
+    "description": "Export mor-theme.css and rsync the project to any SSH host (Hostinger defaults available).",
+    "payload_url": ""
+  }
+]

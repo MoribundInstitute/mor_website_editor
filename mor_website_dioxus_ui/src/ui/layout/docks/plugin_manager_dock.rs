@@ -2,6 +2,9 @@
 //! Available plugins | Marketplace, toolbar (category + search), card grid.
 
 use crate::app::config_bridge::{CompendiumManifest, PluginState};
+use crate::app::plugin_registry::{
+    fetch_marketplace, fallback_compendium, DEFAULT_MARKETPLACE_URL,
+};
 use crate::app::state::{DockPosition, LayoutState, PluginManagerContext};
 use crate::ui::components::dock_chrome::DockChrome;
 use crate::utils::mcp_installer::{
@@ -252,9 +255,6 @@ const PLUGIN_MGR_CSS: &str = r#"
 }
 "#;
 
-const DEFAULT_MARKETPLACE_URL: &str =
-    "https://raw.githubusercontent.com/MoribundInstitute/mor-website-theme-editor-plugin-compendium/main/registry.json";
-
 fn upsert_mcp_bridge_plugin(plugins: &mut Vec<PluginState>, version: &str) {
     if let Some(p) = plugins.iter_mut().find(|p| p.id == OFFICIAL_MCP_PLUGIN_ID) {
         p.enabled = true;
@@ -371,28 +371,24 @@ pub fn PluginManagerDock() -> Element {
         refreshing.set(true);
         install_status.set(None);
         spawn(async move {
-            let result = async {
-                let res = reqwest::get(&url)
-                    .await
-                    .map_err(|e| format!("Network error: {e}"))?;
-                if !res.status().is_success() {
-                    return Err(format!("HTTP {}", res.status()));
-                }
-                res.json::<Vec<CompendiumManifest>>()
-                    .await
-                    .map_err(|e| format!("Invalid registry JSON: {e}"))
-            }
-            .await;
-            match result {
-                Ok(list) => {
-                    compendium_registry.set(list);
-                    install_status.set(Some(Ok("Marketplace registry refreshed.".into())));
-                }
-                Err(e) => install_status.set(Some(Err(e))),
+            let (list, warn) = fetch_marketplace(&url).await;
+            compendium_registry.set(list);
+            if let Some(msg) = warn {
+                // Soft warning — built-in catalog (incl. MCP) is still usable.
+                install_status.set(Some(Err(msg)));
+            } else {
+                install_status.set(Some(Ok("Marketplace registry refreshed.".into())));
             }
             refreshing.set(false);
         });
     };
+
+    // Ensure registry is never empty (e.g. race before shell seed finishes).
+    use_effect(move || {
+        if compendium_registry.read().is_empty() {
+            compendium_registry.set(fallback_compendium());
+        }
+    });
 
     let inner_content = rsx! {
         DockChrome {
@@ -504,8 +500,46 @@ pub fn PluginManagerDock() -> Element {
                             let empty = mcp_filtered.is_empty() && plugins.is_empty();
                             rsx! {
                                 if empty {
-                                    p { class: "mor-pm-empty",
-                                        "No plugins installed yet. Open the Marketplace to browse or install from disk / GitHub."
+                                    div { class: "mor-pm-empty", style: "display:flex;flex-direction:column;align-items:center;gap:12px;",
+                                        p { style: "margin:0;",
+                                            "No plugins installed yet."
+                                        }
+                                        p { style: "margin:0;font-size:0.78rem;max-width:28rem;",
+                                            "Install the MCP AI Bridge to let Claude / Grok build and theme sites (Robot Assist). Or open Marketplace for the full catalog."
+                                        }
+                                        div { class: "mor-pm-hero-actions", style: "justify-content:center;",
+                                            button {
+                                                disabled: installing_mcp(),
+                                                onclick: move |_| {
+                                                    if installing_mcp() { return; }
+                                                    installing_mcp.set(true);
+                                                    install_status.set(None);
+                                                    spawn(async move {
+                                                        match install_official_mcp_engine().await {
+                                                            Ok(report) => {
+                                                                let bin = report.binary_path.file_name()
+                                                                    .and_then(|n| n.to_str()).unwrap_or("mor-mcp");
+                                                                current_state.with_mut(|s| {
+                                                                    upsert_mcp_bridge_plugin(s, "0.1.0");
+                                                                });
+                                                                installed_plugins.set(list_installed_mcp_binaries());
+                                                                install_status.set(Some(Ok(format!(
+                                                                    "MCP AI Bridge installed ({bin}). Enable Robot Assist in Preferences, then restart your MCP client."
+                                                                ))));
+                                                            }
+                                                            Err(e) => install_status.set(Some(Err(e))),
+                                                        }
+                                                        installing_mcp.set(false);
+                                                    });
+                                                },
+                                                if installing_mcp() { "Installing…" } else { "Install MCP AI Bridge" }
+                                            }
+                                            button {
+                                                class: "secondary",
+                                                onclick: move |_| active_tab.set(ManagerTab::Marketplace),
+                                                "Open Marketplace"
+                                            }
+                                        }
                                     }
                                 } else {
                                     div { class: "mor-pm-grid",
@@ -1039,26 +1073,14 @@ pub fn PluginManagerDock() -> Element {
                                     refreshing.set(true);
                                     install_status.set(None);
                                     spawn(async move {
-                                        let result = async {
-                                            let res = reqwest::get(&url)
-                                                .await
-                                                .map_err(|e| format!("Network error: {e}"))?;
-                                            if !res.status().is_success() {
-                                                return Err(format!("HTTP {}", res.status()));
-                                            }
-                                            res.json::<Vec<CompendiumManifest>>()
-                                                .await
-                                                .map_err(|e| format!("Invalid registry JSON: {e}"))
-                                        }
-                                        .await;
-                                        match result {
-                                            Ok(list) => {
-                                                compendium_registry.set(list);
-                                                install_status.set(Some(Ok(
-                                                    "Marketplace registry refreshed.".into(),
-                                                )));
-                                            }
-                                            Err(e) => install_status.set(Some(Err(e))),
+                                        let (list, warn) = fetch_marketplace(&url).await;
+                                        compendium_registry.set(list);
+                                        if let Some(msg) = warn {
+                                            install_status.set(Some(Err(msg)));
+                                        } else {
+                                            install_status.set(Some(Ok(
+                                                "Marketplace registry refreshed.".into(),
+                                            )));
                                         }
                                         refreshing.set(false);
                                     });
