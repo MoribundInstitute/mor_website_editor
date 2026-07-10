@@ -41,9 +41,9 @@ fn fallback_compendium() -> Vec<CompendiumManifest> {
             display_name: "MCP AI Bridge".to_string(),
             version: "1.0.0".to_string(),
             description:
-                "Connect an external MCP engine for AI-assisted theming. Fully opt-in and offline otherwise."
+                "One-click install of the MorWebsite MCP engine (GitHub: MoribundMurdoch/mor-website-editor-mcp). Opt-in; editor stays offline otherwise."
                     .to_string(),
-            payload_url: "".to_string(),
+            payload_url: "https://github.com/MoribundMurdoch/mor-website-editor-mcp".to_string(),
         },
         CompendiumManifest {
             id: "ssh_publish".to_string(),

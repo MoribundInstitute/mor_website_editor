@@ -233,7 +233,7 @@ MorWebsite Editor is a sibling/fork of the [MorBlogger Theme Editor](https://git
 
 ### Companion Plugins
 Standalone tools that plug into the editor via its compiler crate (`mor_website_core`), checked out as sibling repos:
-- [mor-website-editor-mcp](https://github.com/MoribundInstitute/mor-website-editor-mcp) — the MCP engine for AI access (see *AI & LLM Integration* below).
+- [mor-website-editor-mcp](https://github.com/MoribundMurdoch/mor-website-editor-mcp) — the MCP engine for AI access (see *AI & LLM Integration* below).
 - [mor-website-editor-ssh-publish](https://github.com/MoribundInstitute/mor-website-editor-ssh-publish) — `mor-publish`: export mor-theme.css and rsync the project to any SSH host (Hostinger defaults baked in).
 
 ### Legacy Lineage
@@ -316,11 +316,42 @@ For developers and power users who want AI assistance without embedding a runtim
 
 By running the **MorWebsite MCP Engine**, you can connect your CLI agent or desktop IDE directly to MorWebsite core: open a website project, read pages, compile `mor-theme.css` through the editor's own pipeline, run the editor's diagnostics, and write validated theme presets.
 
-Communication between the UI and the MCP server needs no IPC at all: the editor already hot-watches its `theme_presets/` folder (`theme_hot_reload` in the Dioxus app), so a preset the AI writes through the engine restyles the live preview immediately. Register the engine with your MCP client (e.g. `claude mcp add mor -- …/mor-mcp --presets-dir …/theme_presets`) — setup details in its README.
+Communication between the UI and the MCP server needs no IPC at all: the editor already hot-watches its `theme_presets/` folder (`theme_hot_reload` in the Dioxus app), so a preset the AI writes through the engine restyles the live preview immediately.
 
-🔗 **Get the MCP Engine:** [mor-website-editor-mcp](https://github.com/MoribundInstitute/mor-website-editor-mcp)
+### Easiest: install from the editor
 
-*Note: This is strictly opt-in. The core MorWebsite UI is offline and local by default — the engine is a separate process you launch through your MCP client, never from inside the editor.*
+1. Open **Plugin Manager** (menu → Plugin Manager).
+2. Open the **Marketplace** tab.
+3. Click **Install MCP AI Bridge** (downloads the OS release asset and registers Claude Desktop + daemon registry).
+4. Restart Claude Desktop / your MCP client so it picks up the registered server (`mor_website_engine`).
+
+Release assets (exact names the installer expects):
+
+| Platform | Asset |
+|---|---|
+| Linux | `mor-mcp-linux` |
+| Windows | `mor-mcp-windows.exe` |
+| macOS | `mor-mcp-macos` |
+
+You can also install a local plugin folder from the CLI:
+
+```bash
+mwt plugin install /path/to/plugin_dir   # needs manifest.toml + entrypoint
+# or from the MCP repo:
+cd ../mor-website-editor-mcp && ./install.sh
+```
+
+### Manual agent registration
+
+```bash
+claude mcp add mor -- \
+  /path/to/mor-mcp \
+  --presets-dir /path/to/mor_website_editor/theme_presets
+```
+
+🔗 **Get the MCP Engine:** [mor-website-editor-mcp](https://github.com/MoribundMurdoch/mor-website-editor-mcp)
+
+*Note: This is strictly opt-in. The core MorWebsite UI is offline and local by default. The engine is a separate process launched by your MCP client; the editor only helps download/register the binary and hot-reloads presets the agent writes.*
 
 
 ---

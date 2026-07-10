@@ -7,7 +7,7 @@ MorWebsite Editor is a sibling/fork of the [MorBlogger Theme Editor](https://git
 
 ### Companion Plugins
 Standalone tools that plug into the editor via its compiler crate (`mor_website_core`), checked out as sibling repos:
-- [mor-website-editor-mcp](https://github.com/MoribundInstitute/mor-website-editor-mcp) — the MCP engine for AI access (see *AI & LLM Integration* below).
+- [mor-website-editor-mcp](https://github.com/MoribundMurdoch/mor-website-editor-mcp) — the MCP engine for AI access (see *AI & LLM Integration* below).
 - [mor-website-editor-ssh-publish](https://github.com/MoribundInstitute/mor-website-editor-ssh-publish) — `mor-publish`: export mor-theme.css and rsync the project to any SSH host (Hostinger defaults baked in).
 
 ### Legacy Lineage

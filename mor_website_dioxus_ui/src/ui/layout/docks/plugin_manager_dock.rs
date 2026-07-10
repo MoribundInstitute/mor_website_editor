@@ -4,6 +4,10 @@
 use crate::app::config_bridge::{CompendiumManifest, PluginState};
 use crate::app::state::{DockPosition, LayoutState, PluginManagerContext};
 use crate::ui::components::dock_chrome::DockChrome;
+use crate::utils::mcp_installer::{
+    install_mcp_binary_from_disk, install_official_mcp_engine, install_plugin_from_github,
+    is_mcp_bridge_plugin, list_installed_mcp_binaries, OFFICIAL_MCP_PLUGIN_ID, OFFICIAL_MCP_REPO,
+};
 use dioxus::prelude::*;
 use rfd::FileDialog;
 
@@ -222,10 +226,47 @@ const PLUGIN_MGR_CSS: &str = r#"
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 0.72rem; color: var(--fg-muted); cursor: pointer; user-select: none;
 }
+.mor-pm-hero {
+  margin-bottom: 14px; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--editor-good, #46c08a) 35%, var(--border, #333));
+  background: color-mix(in srgb, var(--editor-good, #46c08a) 10%, transparent);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.mor-pm-hero h4 {
+  margin: 0; font-size: 0.88rem; font-weight: 700; color: var(--fg-base);
+}
+.mor-pm-hero p {
+  margin: 0; font-size: 0.75rem; line-height: 1.4; color: var(--fg-muted);
+}
+.mor-pm-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.mor-pm-hero-actions button {
+  font: inherit; font-size: 0.78rem; font-weight: 600; padding: 7px 12px;
+  border-radius: 6px; cursor: pointer; border: none;
+  background: color-mix(in srgb, var(--editor-good, #46c08a) 88%, #000);
+  color: #fff;
+}
+.mor-pm-hero-actions button:disabled { opacity: 0.55; cursor: wait; }
+.mor-pm-hero-actions button.secondary {
+  background: transparent; color: var(--fg-base);
+  border: 1px solid var(--border, #333); font-weight: 500;
+}
 "#;
 
 const DEFAULT_MARKETPLACE_URL: &str =
     "https://raw.githubusercontent.com/MoribundInstitute/mor-website-theme-editor-plugin-compendium/main/registry.json";
+
+fn upsert_mcp_bridge_plugin(plugins: &mut Vec<PluginState>, version: &str) {
+    if let Some(p) = plugins.iter_mut().find(|p| p.id == OFFICIAL_MCP_PLUGIN_ID) {
+        p.enabled = true;
+        p.version = version.to_string();
+    } else {
+        plugins.push(PluginState {
+            id: OFFICIAL_MCP_PLUGIN_ID.to_string(),
+            enabled: true,
+            version: version.to_string(),
+        });
+    }
+}
 
 #[component]
 pub fn PluginManagerDock() -> Element {
@@ -251,9 +292,10 @@ pub fn PluginManagerDock() -> Element {
     let mut show_dev = use_signal(|| false);
     let mut marketplace_url = use_signal(|| DEFAULT_MARKETPLACE_URL.to_string());
     let mut refreshing = use_signal(|| false);
+    let mut installing_mcp = use_signal(|| false);
 
     use_effect(move || {
-        installed_plugins.set(crate::utils::mcp_installer::list_installed_mcp_binaries());
+        installed_plugins.set(list_installed_mcp_binaries());
     });
 
     let current_read = current_state.read().clone();
@@ -577,7 +619,113 @@ pub fn PluginManagerDock() -> Element {
                                 .filter(|r| matches_filter(&r.id, &r.display_name, &r.description))
                                 .cloned()
                                 .collect();
+                            let mcp_already = current_read.iter().any(|p| is_mcp_bridge_plugin(&p.id))
+                                || installed_plugins.read().iter().any(|n| {
+                                    let n = n.to_ascii_lowercase();
+                                    n.contains("mcp") || n.contains("mor-mcp")
+                                });
                             rsx! {
+                                // One-click official MCP engine
+                                div { class: "mor-pm-hero",
+                                    h4 { "MCP AI Bridge" }
+                                    p {
+                                        "Download the official engine from GitHub, register it with the editor, and add it to Claude Desktop config. "
+                                        "Repo: {OFFICIAL_MCP_REPO}"
+                                    }
+                                    div { class: "mor-pm-hero-actions",
+                                        button {
+                                            disabled: installing_mcp(),
+                                            onclick: move |_| {
+                                                if installing_mcp() {
+                                                    return;
+                                                }
+                                                installing_mcp.set(true);
+                                                install_status.set(None);
+                                                spawn(async move {
+                                                    match install_official_mcp_engine().await {
+                                                        Ok(report) => {
+                                                            let bin = report
+                                                                .binary_path
+                                                                .file_name()
+                                                                .and_then(|n| n.to_str())
+                                                                .unwrap_or("mor-mcp")
+                                                                .to_string();
+                                                            current_state.with_mut(|s| {
+                                                                upsert_mcp_bridge_plugin(
+                                                                    s,
+                                                                    "1.0.0",
+                                                                );
+                                                            });
+                                                            installed_plugins
+                                                                .set(list_installed_mcp_binaries());
+                                                            let claude_note = report
+                                                                .claude_config
+                                                                .as_ref()
+                                                                .map(|p| {
+                                                                    format!(
+                                                                        " Claude config: {}.",
+                                                                        p.display()
+                                                                    )
+                                                                })
+                                                                .unwrap_or_default();
+                                                            install_status.set(Some(Ok(format!(
+                                                                "MCP AI Bridge installed ({bin}). Restart Claude / your agent to load it.{claude_note}"
+                                                            ))));
+                                                        }
+                                                        Err(e) => {
+                                                            install_status.set(Some(Err(e)));
+                                                        }
+                                                    }
+                                                    installing_mcp.set(false);
+                                                });
+                                            },
+                                            if installing_mcp() {
+                                                "Installing…"
+                                            } else if mcp_already {
+                                                "Reinstall MCP AI Bridge"
+                                            } else {
+                                                "Install MCP AI Bridge"
+                                            }
+                                        }
+                                        button {
+                                            class: "secondary",
+                                            disabled: installing_mcp(),
+                                            onclick: move |_| {
+                                                if let Some(file_path) = FileDialog::new()
+                                                    .set_title("Select mor-mcp binary")
+                                                    .pick_file()
+                                                {
+                                                    match install_mcp_binary_from_disk(&file_path) {
+                                                        Ok(report) => {
+                                                            let bin = report
+                                                                .binary_path
+                                                                .file_name()
+                                                                .and_then(|n| n.to_str())
+                                                                .unwrap_or("mor-mcp")
+                                                                .to_string();
+                                                            current_state.with_mut(|s| {
+                                                                upsert_mcp_bridge_plugin(
+                                                                    s, "1.0.0",
+                                                                );
+                                                            });
+                                                            installed_plugins
+                                                                .set(list_installed_mcp_binaries());
+                                                            install_status.set(Some(Ok(format!(
+                                                                "Installed MCP binary from disk ({bin}). Restart your MCP client."
+                                                            ))));
+                                                        }
+                                                        Err(e) => install_status
+                                                            .set(Some(Err(format!(
+                                                                "Failed to install MCP: {e}"
+                                                            )))),
+                                                    }
+                                                }
+                                            },
+                                            "Install from Disk…"
+                                        }
+                                    }
+                                }
+
                                 if market.is_empty() {
                                     p { class: "mor-pm-empty",
                                         "No marketplace plugins match. Try Refresh, clear search, or open Developer mode to set a registry URL."
@@ -598,6 +746,7 @@ pub fn PluginManagerDock() -> Element {
                                                     .collect();
                                                 let rid = remote.id.clone();
                                                 let rver = remote.version.clone();
+                                                let is_mcp = is_mcp_bridge_plugin(&remote.id);
                                                 rsx! {
                                                     div {
                                                         key: "mkt-{remote.id}",
@@ -612,6 +761,9 @@ pub fn PluginManagerDock() -> Element {
                                                             p { class: "mor-pm-card-desc", "{remote.description}" }
                                                             div { class: "mor-pm-card-meta",
                                                                 span { class: "mor-pm-stars", title: "Community signal (placeholder)", "{star_str}" }
+                                                                if is_mcp {
+                                                                    span { class: "mor-pm-badge mcp", "MCP" }
+                                                                }
                                                                 span { class: "mor-pm-badge cat", "{cat_label}" }
                                                                 span { style: "font-family: monospace;", "v{remote.version}" }
                                                             }
@@ -620,41 +772,131 @@ pub fn PluginManagerDock() -> Element {
                                                                     {
                                                                         let id = rid.clone();
                                                                         let ver = remote_up.version.clone();
+                                                                        let mcp_update = is_mcp;
                                                                         rsx! {
                                                                             button {
                                                                                 class: "update",
+                                                                                disabled: installing_mcp() && mcp_update,
                                                                                 onclick: move |_| {
-                                                                                    current_state.with_mut(|s| {
-                                                                                        if let Some(p) = s.iter_mut().find(|p| p.id == id) {
-                                                                                            p.version = ver.clone();
+                                                                                    if mcp_update {
+                                                                                        if installing_mcp() {
+                                                                                            return;
                                                                                         }
-                                                                                    });
+                                                                                        installing_mcp.set(true);
+                                                                                        install_status.set(None);
+                                                                                        let id = id.clone();
+                                                                                        let ver = ver.clone();
+                                                                                        spawn(async move {
+                                                                                            match install_official_mcp_engine().await {
+                                                                                                Ok(report) => {
+                                                                                                    current_state.with_mut(|s| {
+                                                                                                        if let Some(p) = s.iter_mut().find(|p| p.id == id) {
+                                                                                                            p.version = ver;
+                                                                                                            p.enabled = true;
+                                                                                                        }
+                                                                                                    });
+                                                                                                    installed_plugins.set(list_installed_mcp_binaries());
+                                                                                                    let bin = report.binary_path.file_name()
+                                                                                                        .and_then(|n| n.to_str()).unwrap_or("mor-mcp");
+                                                                                                    install_status.set(Some(Ok(format!(
+                                                                                                        "Updated MCP AI Bridge ({bin})."
+                                                                                                    ))));
+                                                                                                }
+                                                                                                Err(e) => install_status.set(Some(Err(e))),
+                                                                                            }
+                                                                                            installing_mcp.set(false);
+                                                                                        });
+                                                                                    } else {
+                                                                                        current_state.with_mut(|s| {
+                                                                                            if let Some(p) = s.iter_mut().find(|p| p.id == id) {
+                                                                                                p.version = ver.clone();
+                                                                                            }
+                                                                                        });
+                                                                                    }
                                                                                 },
-                                                                                "Update"
+                                                                                if mcp_update { "Update engine" } else { "Update" }
                                                                             }
                                                                         }
                                                                     }
-                                                                } else if installed.is_some() {
+                                                                } else if installed.is_some() && !is_mcp {
                                                                     button {
                                                                         class: "primary",
                                                                         disabled: true,
                                                                         style: "opacity: 0.65; cursor: default;",
                                                                         "Installed"
                                                                     }
+                                                                } else if installed.is_some() && is_mcp {
+                                                                    button {
+                                                                        class: "primary",
+                                                                        disabled: installing_mcp(),
+                                                                        onclick: move |_| {
+                                                                            if installing_mcp() {
+                                                                                return;
+                                                                            }
+                                                                            installing_mcp.set(true);
+                                                                            install_status.set(None);
+                                                                            spawn(async move {
+                                                                                match install_official_mcp_engine().await {
+                                                                                    Ok(report) => {
+                                                                                        installed_plugins.set(list_installed_mcp_binaries());
+                                                                                        let bin = report.binary_path.file_name()
+                                                                                            .and_then(|n| n.to_str()).unwrap_or("mor-mcp");
+                                                                                        install_status.set(Some(Ok(format!(
+                                                                                            "Reinstalled MCP AI Bridge ({bin})."
+                                                                                        ))));
+                                                                                    }
+                                                                                    Err(e) => install_status.set(Some(Err(e))),
+                                                                                }
+                                                                                installing_mcp.set(false);
+                                                                            });
+                                                                        },
+                                                                        if installing_mcp() { "Installing…" } else { "Reinstall" }
+                                                                    }
                                                                 } else {
                                                                     button {
                                                                         class: "primary",
+                                                                        disabled: installing_mcp() && is_mcp,
                                                                         onclick: move |_| {
-                                                                            current_state.with_mut(|s| {
-                                                                                s.push(PluginState {
-                                                                                    id: rid.clone(),
-                                                                                    enabled: true,
-                                                                                    version: rver.clone(),
+                                                                            if is_mcp {
+                                                                                if installing_mcp() {
+                                                                                    return;
+                                                                                }
+                                                                                installing_mcp.set(true);
+                                                                                install_status.set(None);
+                                                                                let ver = rver.clone();
+                                                                                spawn(async move {
+                                                                                    match install_official_mcp_engine().await {
+                                                                                        Ok(report) => {
+                                                                                            current_state.with_mut(|s| {
+                                                                                                upsert_mcp_bridge_plugin(s, &ver);
+                                                                                            });
+                                                                                            installed_plugins.set(list_installed_mcp_binaries());
+                                                                                            let bin = report.binary_path.file_name()
+                                                                                                .and_then(|n| n.to_str()).unwrap_or("mor-mcp");
+                                                                                            install_status.set(Some(Ok(format!(
+                                                                                                "MCP AI Bridge installed ({bin}). Restart your MCP client."
+                                                                                            ))));
+                                                                                        }
+                                                                                        Err(e) => install_status.set(Some(Err(e))),
+                                                                                    }
+                                                                                    installing_mcp.set(false);
                                                                                 });
-                                                                            });
-                                                                            install_status.set(Some(Ok(format!("Installed {rid}."))));
+                                                                            } else {
+                                                                                current_state.with_mut(|s| {
+                                                                                    s.push(PluginState {
+                                                                                        id: rid.clone(),
+                                                                                        enabled: true,
+                                                                                        version: rver.clone(),
+                                                                                    });
+                                                                                });
+                                                                                install_status.set(Some(Ok(format!("Installed {rid}."))));
+                                                                            }
                                                                         },
-                                                                        "Install"
+                                                                        if is_mcp && installing_mcp() {
+                                                                            "Installing…"
+                                                                        } else {
+                                                                            "Install"
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -672,42 +914,32 @@ pub fn PluginManagerDock() -> Element {
                                     button {
                                         class: "mor-btn",
                                         style: "width: 100%; border-style: dashed; font-size: 0.8rem;",
+                                        disabled: installing_mcp(),
                                         onclick: move |_| {
                                             if let Some(file_path) = FileDialog::new()
-                                                .set_title("Select MorWebsite MCP Binary")
+                                                .set_title("Select MorWebsite MCP Binary (mor-mcp)")
                                                 .pick_file()
                                             {
-                                                let mut final_path = file_path.clone();
-                                                let mut copy_success = false;
-                                                if let Some(mcp_dir) = crate::utils::mcp_installer::mcp_daemon_registry_path()
-                                                    .parent()
-                                                    .map(std::path::Path::to_path_buf)
-                                                {
-                                                    if std::fs::create_dir_all(&mcp_dir).is_ok() {
-                                                        if let Some(file_name) = file_path.file_name() {
-                                                            let dest_path = mcp_dir.join(file_name);
-                                                            if std::fs::copy(&file_path, &dest_path).is_ok() {
-                                                                final_path = dest_path;
-                                                                copy_success = true;
-                                                            }
-                                                        }
+                                                match install_mcp_binary_from_disk(&file_path) {
+                                                    Ok(report) => {
+                                                        let bin = report
+                                                            .binary_path
+                                                            .file_name()
+                                                            .and_then(|n| n.to_str())
+                                                            .unwrap_or("mor-mcp")
+                                                            .to_string();
+                                                        current_state.with_mut(|s| {
+                                                            upsert_mcp_bridge_plugin(s, "1.0.0");
+                                                        });
+                                                        installed_plugins.set(list_installed_mcp_binaries());
+                                                        install_status.set(Some(Ok(format!(
+                                                            "Successfully installed MCP plugin ({bin}). Restart your MCP client."
+                                                        ))));
                                                     }
-                                                }
-
-                                                match crate::utils::mcp_installer::install_mcp_to_claude(&final_path.clone()) {
-                                                    Ok(_) => {
-                                                        let msg = if copy_success {
-                                                            "Successfully installed MCP plugin (copied to internal config dir)!"
-                                                        } else {
-                                                            "Successfully installed MCP plugin directly!"
-                                                        };
-                                                        install_status.set(Some(Ok(msg.to_string())));
-                                                        if let Some(file_name) = final_path.file_name().and_then(|n| n.to_str()) {
-                                                            installed_plugins.write().push(file_name.to_string());
-                                                        }
-                                                    },
                                                     Err(e) => {
-                                                        install_status.set(Some(Err(format!("Failed to install MCP: {}", e))));
+                                                        install_status.set(Some(Err(format!(
+                                                            "Failed to install MCP: {e}"
+                                                        ))));
                                                     }
                                                 }
                                             }
@@ -717,28 +949,48 @@ pub fn PluginManagerDock() -> Element {
                                     input {
                                         class: "mor-pm-search",
                                         style: "width: 100%; box-sizing: border-box;",
-                                        placeholder: "Author/Repo (e.g. MoribundInstitute/mcp)",
+                                        placeholder: format!("Author/Repo (e.g. {OFFICIAL_MCP_REPO})"),
                                         value: "{repo_input}",
                                         oninput: move |evt| repo_input.set(evt.value())
                                     }
                                     button {
                                         class: "mor-btn-primary",
                                         style: "width: 100%; font-size: 0.8rem;",
+                                        disabled: installing_mcp(),
                                         onclick: move |_| {
                                             let repo = repo_input.read().clone();
-                                            if !repo.is_empty() {
-                                                spawn(async move {
-                                                    match crate::utils::mcp_installer::install_plugin_from_github(&repo).await {
-                                                        Ok(file) => {
-                                                            install_status.set(Some(Ok(format!("Successfully installed plugin: {}", file))));
-                                                            installed_plugins.write().push(file);
-                                                        }
-                                                        Err(e) => {
-                                                            install_status.set(Some(Err(format!("GitHub Install Failed: {}", e))));
-                                                        }
-                                                    }
-                                                });
+                                            if repo.is_empty() {
+                                                return;
                                             }
+                                            installing_mcp.set(true);
+                                            install_status.set(None);
+                                            spawn(async move {
+                                                match install_plugin_from_github(&repo).await {
+                                                    Ok(file) => {
+                                                        if is_mcp_bridge_plugin(&repo)
+                                                            || file.to_ascii_lowercase().contains("mcp")
+                                                            || repo.contains("mcp")
+                                                        {
+                                                            current_state.with_mut(|s| {
+                                                                upsert_mcp_bridge_plugin(
+                                                                    s, "1.0.0",
+                                                                );
+                                                            });
+                                                        }
+                                                        installed_plugins
+                                                            .set(list_installed_mcp_binaries());
+                                                        install_status.set(Some(Ok(format!(
+                                                            "Successfully installed plugin: {file}"
+                                                        ))));
+                                                    }
+                                                    Err(e) => {
+                                                        install_status.set(Some(Err(format!(
+                                                            "GitHub Install Failed: {e}"
+                                                        ))));
+                                                    }
+                                                }
+                                                installing_mcp.set(false);
+                                            });
                                         },
                                         "Fetch from GitHub"
                                     }

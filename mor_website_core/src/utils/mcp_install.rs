@@ -197,6 +197,7 @@ pub fn register_mcp_daemon_entry(
     }
 
     if let Some(servers) = registry.get_mut("servers").and_then(|s| s.as_object_mut()) {
+        let args = default_mcp_args();
         servers.insert(
             manifest.mcp_server_key.clone(),
             json!({
@@ -206,7 +207,7 @@ pub fn register_mcp_daemon_entry(
                 "description": manifest.description,
                 "system_prompt": manifest.system_prompt,
                 "command": binary_path.to_string_lossy(),
-                "args": [],
+                "args": args,
                 "enabled": true
             }),
         );
@@ -217,12 +218,69 @@ pub fn register_mcp_daemon_entry(
     Ok(())
 }
 
+/// Best-effort discovery of the editor `theme_presets/` folder for MCP `--presets-dir`.
+pub fn guess_presets_dir() -> Option<PathBuf> {
+    if let Ok(explicit) = std::env::var("MOR_PRESETS_DIR") {
+        let p = PathBuf::from(explicit);
+        if p.is_dir() {
+            return Some(p);
+        }
+    }
+
+    let candidates = [
+        PathBuf::from("theme_presets"),
+        PathBuf::from("../mor_website_editor/theme_presets"),
+        PathBuf::from("../../mor_website_editor/theme_presets"),
+    ];
+    for c in candidates {
+        if c.is_dir() {
+            if let Ok(abs) = c.canonicalize() {
+                return Some(abs);
+            }
+            return Some(c);
+        }
+    }
+
+    // Walk up from cwd looking for theme_presets next to a Cargo workspace.
+    if let Ok(mut dir) = std::env::current_dir() {
+        for _ in 0..6 {
+            let presets = dir.join("theme_presets");
+            if presets.is_dir() {
+                return Some(presets);
+            }
+            let sibling = dir.join("mor_website_editor").join("theme_presets");
+            if sibling.is_dir() {
+                return Some(sibling);
+            }
+            if !dir.pop() {
+                break;
+            }
+        }
+    }
+    None
+}
+
+pub fn default_mcp_args() -> Vec<String> {
+    match guess_presets_dir() {
+        Some(dir) => vec![
+            "--presets-dir".to_string(),
+            dir.to_string_lossy().into_owned(),
+        ],
+        None => Vec::new(),
+    }
+}
+
 pub fn install_mcp_to_claude(binary_path: &Path, server_key: &str) -> Result<PathBuf, String> {
     let base = BaseDirs::new().ok_or("Could not find OS config directory")?;
     let claude_config_path = base
         .config_dir()
         .join("Claude/claude_desktop_config.json");
-    install_mcp_to_path(&claude_config_path, binary_path, server_key)?;
+    install_mcp_to_path_with_args(
+        &claude_config_path,
+        binary_path,
+        server_key,
+        &default_mcp_args(),
+    )?;
     Ok(claude_config_path)
 }
 
@@ -230,6 +288,20 @@ pub fn install_mcp_to_path(
     claude_config_path: &Path,
     binary_path: &Path,
     server_key: &str,
+) -> Result<(), String> {
+    install_mcp_to_path_with_args(
+        claude_config_path,
+        binary_path,
+        server_key,
+        &default_mcp_args(),
+    )
+}
+
+pub fn install_mcp_to_path_with_args(
+    claude_config_path: &Path,
+    binary_path: &Path,
+    server_key: &str,
+    args: &[String],
 ) -> Result<(), String> {
     let mut config: Value = if claude_config_path.exists() {
         let data = fs::read_to_string(claude_config_path).unwrap_or_default();
@@ -254,7 +326,7 @@ pub fn install_mcp_to_path(
             server_key.to_string(),
             json!({
                 "command": binary_path.to_string_lossy(),
-                "args": []
+                "args": args
             }),
         );
     }
