@@ -1,0 +1,36 @@
+/* CSS custom properties (design tokens) for the Theme Architect editor UI.
+   Token bridge: maps legacy --editor-* aliases to live --mor-* theme variables. */
+
+:root {
+  --editor-bg: var(--mor-bg);
+  --editor-bg-deep: var(--mor-header);
+  --editor-panel: var(--mor-panel);
+  --editor-panel-soft: color-mix(in srgb, var(--mor-panel) 50%, transparent);
+  --editor-panel-raised: var(--mor-btn);
+  --editor-border: var(--mor-border);
+  --editor-border-soft: color-mix(in srgb, var(--mor-border) 50%, transparent);
+  --editor-text: var(--mor-text);
+  --editor-muted: var(--mor-text-muted);
+  --editor-muted-2: color-mix(in srgb, var(--mor-text-muted) 70%, transparent);
+  --font-sans: var(--mor-font);
+  --editor-accent: var(--mor-accent);
+  --editor-accent-warm: var(--mor-accent-hover);
+  --editor-good: var(--mor-success);
+  --editor-danger: var(--mor-destructive);
+  --editor-warning: var(--mor-warning);
+  --editor-focus: color-mix(in srgb, var(--mor-accent) 35%, transparent);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+/* Global box-sizing reset */
+* { box-sizing: border-box; }
+
+/* Base document styles */
+html, body, #main, #root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--editor-bg);
+}

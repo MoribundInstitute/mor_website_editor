@@ -1,0 +1,86 @@
+/* Diagnostics footer below the workspace. Shows OK state or a list of
+   integrity errors/warnings about the embedded template.xml. */
+
+.diagnostics-panel {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 6px 12px;
+}
+
+.diagnostics-ok {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--editor-good);
+  font-weight: 500;
+}
+
+.diagnostics-ok-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--editor-good) 20%, transparent);
+  color: var(--editor-good);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.diagnostics-problems {
+  border-left: 3px solid var(--editor-danger);
+  padding-left: 14px;
+}
+
+.diagnostics-badges {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.diagnostics-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.diagnostics-badge.diagnostics-error {
+  background: color-mix(in srgb, var(--editor-danger) 15%, transparent);
+  color: var(--editor-danger);
+  border: 1px solid color-mix(in srgb, var(--editor-danger) 30%, transparent);
+}
+
+.diagnostics-badge.diagnostics-warning {
+  background: color-mix(in srgb, var(--editor-warning) 15%, transparent);
+  color: var(--editor-warning);
+  border: 1px solid color-mix(in srgb, var(--editor-warning) 30%, transparent);
+}
+
+.diagnostics-error, 
+.diagnostics-warning {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.diagnostics-error {
+  color: var(--editor-danger);
+}
+
+.diagnostics-warning {
+  color: var(--editor-warning);
+}
+
+.diagnostics-prefix {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.7rem;
+  font-weight: bold;
+  opacity: 0.7;
+}

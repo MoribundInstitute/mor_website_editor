@@ -1,0 +1,12 @@
+pub mod background_panel;
+pub mod buttons_panel;
+pub mod colors_panel;
+pub mod cursor_panel;
+pub mod effects_panel_2;
+pub mod frames_panel;
+pub mod logo_panel;
+pub mod presets;
+pub mod scrollbar_panel;
+pub mod static_pages_panel;
+pub mod template_modules;
+pub mod typography_panel;

@@ -1,0 +1,14 @@
+<aside class='mor-panel panel-right' id='panel-right'>
+  <div class='panel-header'>
+    <span>{{RIGHT_PANEL_TITLE}}</span>
+    <button aria-label='Close Contents panel' class='panel-toggle' data-edit-target='icons.panel_close' data-target='panel-right'>
+      <span class="mor-icon" style="display: block; width: 1.2em; height: 1.2em; background-color: currentColor; -webkit-mask-image: {{ICON_PANEL_CLOSE}}; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;"></span>
+    </button>
+  </div>
+
+  <div class='panel-content' id='control-container'>
+    <b:section class='sidebar-section' id='sidebar-right' showaddelement='yes'>
+      {{SOCKET_SIDEBAR_RIGHT}}
+    </b:section>
+  </div>
+</aside>

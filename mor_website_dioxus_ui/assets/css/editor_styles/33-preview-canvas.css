@@ -1,0 +1,305 @@
+/* ============================================================
+   33-preview-canvas.css
+   ============================================================ */
+
+/* The deep-space dot grid behind the preview iframe */
+.preview-canvas {
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  min-width: 0;
+  background: var(--editor-bg-deep);
+  background-image: radial-gradient(circle at center, var(--editor-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: 8px;
+  position: relative;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4) inset;
+}
+
+/* The Viewbar / Ruler */
+.preview-ruler {
+  display: flex; 
+  align-items: center; 
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, 0.6); 
+  border-bottom: 1px solid var(--editor-border);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+.preview-ruler-label {
+  color: var(--editor-muted); 
+  font-size: 0.75rem; 
+  width: 140px;
+}
+
+.preview-ruler-line {
+  flex: 1; 
+  height: 1px; 
+  background: var(--editor-border-soft);
+}
+
+/* The Absolute Centering Wrapper */
+.preview-scale-wrapper {
+  position: relative;
+  flex: 1; 
+  width: 100%; 
+  overflow: hidden; 
+}
+
+/* The Iframe Container */
+.preview-device-frame {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  /* Center it, then apply the dynamic JS scale variable */
+  transform: translateX(-50%) scale(var(--preview-scale, 1));
+  transform-origin: top center;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 30px 80px rgba(0, 0, 0, 0.6);
+  background: #ffffff;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Force the height to stretch to the bottom of the workspace */
+  height: calc(100% - 48px);
+}
+
+.preview-device-frame-fit {
+  position: relative;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform: none !important;
+  box-shadow: none;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: white;
+}
+
+/* X-Ray legend (outside the preview iframe) */
+.preview-xray-legend {
+  position: absolute;
+  top: 44px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: min(520px, calc(100% - 24px));
+  padding: 8px 10px;
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
+  background: rgba(8, 10, 16, 0.88);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.preview-xray-legend-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--editor-fg);
+  margin-right: 2px;
+}
+
+.preview-xray-chip {
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.preview-xray-chip-layout { color: #fde68a; background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.35); }
+.preview-xray-chip-widget { color: #bbf7d0; background: rgba(34, 197, 94, 0.16); border-color: rgba(34, 197, 94, 0.35); }
+.preview-xray-chip-text   { color: #bfdbfe; background: rgba(59, 130, 246, 0.16); border-color: rgba(59, 130, 246, 0.35); }
+.preview-xray-chip-token  { color: #e9d5ff; background: rgba(168, 85, 247, 0.16); border-color: rgba(168, 85, 247, 0.35); }
+.preview-xray-chip-icon   { color: #fed7aa; background: rgba(249, 115, 22, 0.16); border-color: rgba(249, 115, 22, 0.35); }
+
+/* Inspect chip — last X-Ray selection resolved to a context (Phase 19). */
+.preview-selection-chip {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 20;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  border-radius: 999px;
+  font: 600 0.7rem/1.3 ui-monospace, monospace;
+  color: #bfdbfe;
+  background: rgba(8, 10, 16, 0.88);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.preview-selection-chip-unbound {
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+/* ── Preview ribbon — mode switch + tabbed tool groups (Phase 19). ──────────
+   Design language: achromatic chrome, stroke icons, instrument-cluster
+   captions. The one chromatic signal is the MODE HAIRLINE: the ribbon's
+   bottom rule and the active mode segment take the mode's color, so the
+   chrome itself says whether a click can change anything.
+     Browse  → neutral border grey (looking only)
+     Inspect → editor accent       (selecting, still read-only)
+     Edit    → warning amber       (gestures can mutate the site)          */
+.preview-ribbon {
+  --mode-color: var(--editor-border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--mode-color);
+  transition: border-color 200ms ease;
+}
+
+.preview-ribbon.mode-inspect { --mode-color: var(--editor-accent, #58a6ff); }
+.preview-ribbon.mode-edit { --mode-color: var(--d29922, #d29922); }
+
+/* Mode segment: icon + word; the active segment carries the mode color. */
+.mor-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mor-mode-btn.is-active {
+  color: var(--mode-color);
+  border-color: color-mix(in srgb, var(--mode-color) 55%, var(--editor-border));
+  background: color-mix(in srgb, var(--mode-color) 12%, transparent);
+}
+
+/* Browse's mode color is the neutral border grey — fine for the hairline,
+   too dim for the active segment's text. Read as plainly active instead. */
+.preview-ribbon.mode-browse .mor-mode-btn.is-active {
+  color: var(--fg-base);
+  border-color: var(--editor-border);
+  background: var(--bg-elevated);
+}
+
+/* Ribbon tabs read as tabs, not buttons: quiet until active, then a
+   text-strength state with a hairline tie to the mode rule below. */
+.mor-ribbon-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--fg-muted);
+}
+
+.mor-ribbon-tab:hover { color: var(--fg-base); }
+
+.mor-ribbon-tab.is-active {
+  color: var(--fg-base);
+  border-color: var(--editor-border);
+  background: var(--bg-elevated);
+}
+
+/* Instrument-cluster caption naming a tool group. */
+.mor-tool-caption {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin: 0 2px;
+  user-select: none;
+}
+
+/* Square icon-only tool button. */
+.mor-tool-btn {
+  padding: 5px 7px;
+}
+
+.mor-tool-btn.is-active {
+  color: var(--fg-base);
+  border-color: var(--editor-accent, #58a6ff);
+  background: var(--bg-elevated);
+}
+
+/* Workspace view tabs (Preview / Code / Split / Export). */
+.mor-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mor-view-tab.is-active {
+  color: var(--fg-base);
+  border-color: var(--editor-accent, #58a6ff);
+  background: var(--bg-elevated);
+}
+
+.mor-icon { display: block; flex-shrink: 0; }
+
+/* The selection chip, inline in the ribbon's contextual tab. */
+.mor-selection-chip-inline {
+  font: 600 0.7rem/1.3 ui-monospace, monospace;
+  color: var(--fg-muted);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quality floor: visible keyboard focus keyed to the mode color, and no
+   hairline animation for reduced-motion users. */
+.preview-ribbon button:focus-visible,
+.mor-view-tab:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mode-color, var(--editor-accent, #58a6ff)) 80%, transparent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-ribbon { transition: none; }
+}
+
+.preview-ribbon-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.preview-ribbon-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.preview-ribbon-swatch input[type="color"] {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--editor-border);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.preview-ribbon-swatch span {
+  font-size: 0.68rem;
+  color: var(--fg-muted);
+}

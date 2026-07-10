@@ -1,0 +1,35 @@
+[application]
+name = "MorWebsite Theme Editor"
+asset_dir = "assets"
+
+[web.app]
+title = "MorWebsite Theme Editor"
+
+[web.watcher]
+reload_html = true
+watch_path = ["src", "assets"]
+
+[web.resource]
+style = []
+
+[web.resource.dev]
+style = []
+
+[bundle]
+identifier = "com.moribundinstitute.morwebsite-theme-editor"
+publisher = "Moribund Institute"
+icon = [
+    "assets/icon.png",
+]
+category = "DeveloperTool"
+short_description = "Visual design-token theme editor for local websites."
+long_description = "MorWebsite Theme Editor is a Dioxus desktop app for opening a local website folder, editing design tokens visually, live-previewing your real pages, and exporting a standalone mor-theme.css."
+
+[watcher]
+ignore = [
+    "editor_prefs.toml",
+    "layout_prefs.toml",
+    "*.txt",
+    "*.md",
+    "sys"
+]

@@ -1,0 +1,12 @@
+/* Local site CSS — prefer variables so Mor presets restyle everything. */
+body {
+  margin: 0;
+  background: var(--bg-base, #10161f);
+  color: var(--fg-base, #ddd);
+  font-family: var(--font-body, system-ui, sans-serif);
+}
+.mor-card {
+  --card-bg: var(--bg-panel);
+  --card-fg: var(--fg-base);
+  --card-accent: var(--accent);
+}

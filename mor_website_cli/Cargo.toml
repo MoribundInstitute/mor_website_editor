@@ -1,0 +1,15 @@
+[package]
+name = "mor_website_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mor_website_core = { path = "../mor_website_core" }
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+colored = "2.1"
+toml = "0.8"
+
+[[bin]]
+name = "mwt"
+path = "src/main.rs"

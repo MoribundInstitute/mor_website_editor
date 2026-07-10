@@ -1,0 +1,398 @@
+menu_links = []
+cursor_style = "auto"
+scrollbar_width = "6px"
+scrollbar_track_color = "transparent"
+scrollbar_thumb_color = "#4c566a"
+scrollbar_thumb_hover_color = "#81a1c1"
+blocks = []
+enable_image_borders = false
+svg_border_slice = "30%"
+image_border_width = "28px"
+target_sidebars = true
+target_canvas = true
+
+[site]
+site_title = "My Site"
+site_subtitle = "A modular site, themed by design tokens."
+header_logo_url = ""
+home_url = "/"
+
+[colors]
+bg_base = "#0f1026"
+fg_base = "#f5f7ff"
+fg_muted = "#a8aedd"
+accent = "#8b5cf6"
+border = "#3d4280"
+glow_color = ""
+panel_border_width = "1px"
+glow_spread = "10px"
+hover_scale = "1.02"
+glow_intensity = "2"
+glow_hover = true
+panel_border_image_url = ""
+panel_border_image_slice = "30%"
+panel_border_image_repeat = "stretch"
+glow_text = false
+glow_containers = false
+glow_icons = false
+glow_logo = false
+glow_title = false
+glow_toc = false
+glow_sidebar = false
+glow_footer = false
+glow_header = false
+glow_main = false
+glow_logo_color = ""
+glow_title_color = ""
+glow_toc_color = ""
+glow_sidebar_color = ""
+glow_text_color = ""
+glow_containers_color = ""
+glow_icons_color = ""
+glow_footer_color = ""
+glow_header_color = ""
+glow_main_color = ""
+
+[colors.bg_panel]
+mode = "Gradient"
+color = "#1e1a4d"
+gradient_from = "#1e1a4d"
+gradient_to = "#5b2c8a"
+gradient_angle_deg = 135
+
+[colors.bg_elevated]
+mode = "Gradient"
+color = "#1e1a4d"
+gradient_from = "#1e1a4d"
+gradient_to = "#5b2c8a"
+gradient_angle_deg = 135
+
+[colors.header_fill]
+mode = "Solid"
+color = "transparent"
+gradient_from = "transparent"
+gradient_to = "transparent"
+gradient_angle_deg = 180
+
+[icons]
+sidebar_left = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9%204v16M6%208h.01M6%2012h.01%20M3%204h18v16H3z'/%3E%3C/svg%3E\")"
+sidebar_right = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15%204v16M18%208h.01M18%2012h.01%20M3%204h18v16H3z'/%3E%3C/svg%3E\")"
+panel_close = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012z'/%3E%3C/svg%3E\")"
+search = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15.5%2010.5a5.5%205.5%200%201%201-11%200%205.5%205.5%200%200%201%2011%200Z%20M21%2021l-5.5-5.5'/%3E%3C/svg%3E\")"
+menu = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3%2018h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z'/%3E%3C/svg%3E\")"
+archive = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5%208v12h14V8%20M10%2012h4%20M3%204h18v4H3z'/%3E%3C/svg%3E\")"
+label = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20%2013%2012%2021%203%2012V3h9l8%208z%20M7.5%207.5A1.5%201.5%200%20107.5%204a1.5%201.5%200%20000%203.5z'/%3E%3C/svg%3E\")"
+toc = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8%206h13%20M8%2012h13%20M8%2018h13%20M3%206h.01%20M3%2012h.01%20M3%2018h.01'/%3E%3C/svg%3E\")"
+share = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4%2012v8a2%202%200%20002%202h12a2%202%200%20002-2v-8%20M16%206l-4-4-4%204%20M12%202v13'/%3E%3C/svg%3E\")"
+user = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20%2021v-2a4%204%200%200%200-4-4H8a4%204%200%200%200-4%204v2%20M12%203a4%204%200%201%200%200%208%204%204%200%200%200%200-8'/%3E%3C/svg%3E\")"
+comment = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21%2015a2%202%200%200%201-2%202H7l-4%204V5a2%202%200%200%201%202-2h14a2%202%200%200%201%202%202z'/%3E%3C/svg%3E\")"
+arrow_up = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12%2019V5%20M5%2012l7-7%207%207'/%3E%3C/svg%3E\")"
+external_link = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18%2013v6a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V8a2%202%200%200%201%202-2h6%20M15%203h6v6%20M10%2014L21%203'/%3E%3C/svg%3E\")"
+
+[icons.custom_icons]
+toc = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8%206h13%20M8%2012h13%20M8%2018h13%20M3%206h.01%20M3%2012h.01%20M3%2018h.01'/%3E%3C/svg%3E\")"
+label = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20%2013%2012%2021%203%2012V3h9l8%208z%20M7.5%207.5A1.5%201.5%200%20107.5%204a1.5%201.5%200%20000%203.5z'/%3E%3C/svg%3E\")"
+archive = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5%208v12h14V8%20M10%2012h4%20M3%204h18v4H3z'/%3E%3C/svg%3E\")"
+
+[icons.recolor]
+
+[assets]
+favicon_url = ""
+social_card_image_url = ""
+
+[background.mode.Gradient]
+from = "#1e1a4d"
+to = "#5b2c8a"
+angle_deg = 135
+
+[buttons]
+radius = "14px"
+border_width = "1px"
+border_style = "solid"
+padding_x = "8px"
+padding_y = "4px"
+full_width = false
+text_transform = "none"
+font_size = ""
+font_weight = ""
+letter_spacing = ""
+fill = "outline"
+elevation = "flat"
+glow_color = ""
+glow_strength = "12px"
+glass_blur = "12px"
+glass_opacity = "0.4"
+gradient_from = ""
+gradient_to = ""
+gradient_angle = "180deg"
+box_shadow = ""
+bg_color = ""
+text_color = ""
+border_color = ""
+hover_bg_color = ""
+hover_effect = "none"
+transition_ms = "0ms"
+easing = "ease"
+pressed_feedback = false
+focus_ring_color = ""
+focus_ring_width = "2px"
+
+[typography]
+body_font_stack = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+heading_font_stack = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+mono_font_stack = "'Courier New', Courier, monospace"
+base_size = "16px"
+scale_ratio = "1.2"
+line_height = "1.6"
+heading_weight = "600"
+elements = []
+
+[seo]
+meta_description = "A modern Blogger theme generated with Blogger Theme Architect."
+meta_keywords = "blog, writing, theme, editorial"
+custom_robots = "index, follow"
+license_url = ""
+author_name = ""
+
+[footer]
+footer_text = "Built with MorWebsite."
+footer_license_label = "License"
+footer_license_url = ""
+
+[[footer.columns]]
+heading = "Introduction"
+
+[[footer.columns.links]]
+label = "Getting Started"
+url = "/"
+
+[[footer.columns]]
+heading = "Downloads"
+
+[[footer.columns.links]]
+label = "Source Code"
+url = "/"
+
+[[footer.columns]]
+heading = "Documentation"
+
+[[footer.columns.links]]
+label = "Guides"
+url = "/"
+
+[[footer.columns]]
+heading = "News"
+
+[[footer.columns.links]]
+label = "Announcements"
+url = "/"
+
+[[footer.columns]]
+heading = "Team"
+
+[[footer.columns.links]]
+label = "Core Team"
+url = "/"
+
+[[footer.columns]]
+heading = "Donate"
+
+[[footer.columns.links]]
+label = "How to contribute"
+url = "/"
+
+[[footer.legal_links]]
+label = "Website source code"
+url = "#"
+
+[[footer.legal_links]]
+label = "Privacy policy"
+url = "#"
+
+[[footer.legal_links]]
+label = "Terms of use"
+url = "#"
+
+[[footer.legal_links]]
+label = "Sitemap"
+url = "#"
+
+[plugins]
+custom_js = ""
+
+[static_pages]
+sync_with_global_theme = true
+
+[static_pages.archive]
+include_in_bundle = false
+kicker = "THE_MORIBUND_INSTITUTE // ARCHIVE"
+title = "Chronological Archive"
+description = "A date-sorted index of Institute posts, lessons, wiki walks, commentaries, and assorted textual machinery."
+max_results = 150
+
+[static_pages.archive.layout]
+hide_left_sidebar = false
+hide_right_sidebar = false
+hide_header = false
+hide_footer = false
+hide_search = false
+width = ""
+
+[static_pages.categories]
+include_in_bundle = false
+kicker = "THE_MORIBUND_INSTITUTE // CATEGORIES"
+title = "Browse Categories"
+description = "A subject index for Institute posts, lessons, wiki walks, lexicographical rummaging, video commentary, and other classified whatnot."
+enabled_sections = [
+    "000 General Works",
+    "100 Philosophy",
+    "200 Religion",
+    "300 Social Sciences",
+    "400 Language",
+    "500 Science",
+    "600 Technology",
+    "700 Arts",
+    "800 Literature",
+    "900 History",
+]
+
+[static_pages.categories.layout]
+hide_left_sidebar = false
+hide_right_sidebar = false
+hide_header = false
+hide_footer = false
+hide_search = false
+width = ""
+
+[static_pages.analytics]
+include_in_bundle = false
+kicker = "THE_MORIBUND_INSTITUTE // ANALYTICS"
+title = "Analytics Dashboard"
+description = "A Blogger HTML page dashboard for public feed activity, category balance, publishing rhythm, and manual analytics metrics."
+max_results = 150
+manual_followers = "Manual"
+manual_thirty_day_views = "Manual"
+manual_total_views = "Manual"
+manual_storage_used = "Manual"
+
+[static_pages.analytics.layout]
+hide_left_sidebar = false
+hide_right_sidebar = false
+hide_header = false
+hide_footer = false
+hide_search = false
+width = ""
+
+[static_pages.about]
+include_in_bundle = false
+kicker = "THE_MORIBUND_INSTITUTE // ABOUT"
+title = "About"
+profile_image_url = ""
+bio_text = "Write a short biography, project manifesto, or institutional origin myth here."
+contact_email = ""
+
+[static_pages.about.layout]
+hide_left_sidebar = true
+hide_right_sidebar = true
+hide_header = false
+hide_footer = false
+hide_search = false
+width = "centered"
+
+[[static_pages.about.social_links]]
+label = "Website"
+url = "#"
+
+[[static_pages.about.social_links]]
+label = "GitHub"
+url = "#"
+
+[static_pages.portfolio]
+include_in_bundle = false
+kicker = "THE_MORIBUND_INSTITUTE // PORTFOLIO"
+title = "Portfolio"
+description = "A curated gallery of projects, artwork, experiments, and assorted visual whatnot."
+columns = 3
+gallery_images = []
+
+[static_pages.portfolio.layout]
+hide_left_sidebar = false
+hide_right_sidebar = false
+hide_header = false
+hide_footer = false
+hide_search = false
+width = "full"
+
+[static_pages.lms]
+include_catalog_in_bundle = false
+include_syllabus_in_bundle = false
+kicker = "THE_MORIBUND_INSTITUTE // LESSONS"
+title = "Learning Hub"
+description = "A structured index for lessons, study paths, course notes, and educational machinery."
+course_title = "Starter Course"
+course_description = "A short description of the course or learning path."
+
+[static_pages.lms.layout]
+hide_left_sidebar = false
+hide_right_sidebar = false
+hide_header = false
+hide_footer = false
+hide_search = false
+width = ""
+
+[[static_pages.lms.lessons]]
+title = "Lesson One"
+description = "Introduce the topic, goal, or skill covered in this lesson."
+url = "#"
+duration_label = "10 min"
+
+[[static_pages.lms.lessons]]
+title = "Lesson Two"
+description = "Continue the learning path with a second structured lesson."
+url = "#"
+duration_label = "15 min"
+
+[ads]
+mode = "None"
+publisher_id = ""
+slots = []
+banner_position = "BottomSlideUp"
+
+[cursor_set]
+pointer = "pointer"
+text = "text"
+help = "help"
+wait = "wait"
+not_allowed = "not-allowed"
+crosshair = "crosshair"
+move = "move"
+grab = "grab"
+zoom_in = "zoom-in"
+
+[template_pack]
+header_variant = "mor_header_baseline"
+main_variant = "sidebars"
+content_variant = "standard_feed"
+left_sidebar_variant = "blogger_left"
+right_sidebar_variant = "toc_right"
+footer_variant = "mega"
+script_variant = "mor_collapsible_sidebars"
+icon_pack = "default"
+
+[template_pack.widget_map]
+sidebar-right = ["HTML1"]
+sidebar-left = [
+    "Label1",
+    "BlogArchive1",
+]
+
+[template_pack.widget_titles]
+BlogArchive1 = "Archive"
+Label1 = "Labels"
+HTML1 = "Table of Contents"
+
+[scripts]
+mobile_breakpoint = 900.0
+panels_collapsed_mobile = true
+enable_theme_toggle = true
+enable_share_actions = true

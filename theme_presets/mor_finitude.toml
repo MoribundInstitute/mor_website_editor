@@ -1,0 +1,229 @@
+name = "Mor Finitude"
+description = "The MoribundMurdoch house theme, in the spirit of Finitude Fighting: a lexicographer's star atlas printed at night — sepia-black ink, gold folio accents, a verdigris graticule, gilt star rules, Cinzel capitals over IM Fell English. Day mode is the same leaf by daylight; the Ultra-White Chalkboard variant preserves the site's original chalk-on-black with violet ink."
+
+preset_css = '''
+/* ============================================================
+   Mor Finitude  —  "Nocturne Folio / Chalkboard"
+   Distilled from moribundmurdoch.com: the page as a leaf from
+   a 17th-century star atlas. An off-centre ecliptic struck in
+   the accent ink, a fine verdigris coordinate grid, panels as
+   pressed paper plates with a double-ruled gold edge, and
+   section titles ruled by a hairline broken with a gilt star.
+   All inks flow from the palette, so every variant re-tints
+   the whole plate (chalk-violet turns the stars violet).
+   ============================================================ */
+
+/* ---- The celestial ground: ecliptic rings over a graticule ---- */
+body::before { background: none !important; opacity: 0 !important; }
+html, body { background-color: var(--bg-base) !important; }
+body {
+  min-height: 100vh;
+  background-image:
+    /* concentric ecliptic rings struck from an off-centre pole */
+    repeating-radial-gradient(circle at 50% 30%,
+      transparent 0 88px,
+      color-mix(in srgb, var(--accent) 9%, transparent) 88px 89px,
+      transparent 89px 178px),
+    /* fine verdigris graticule — the chart's coordinate grid */
+    repeating-linear-gradient(0deg,
+      transparent 0 71px, color-mix(in srgb, #4a6153 8%, transparent) 71px 72px),
+    repeating-linear-gradient(90deg,
+      transparent 0 71px, color-mix(in srgb, #4a6153 8%, transparent) 71px 72px),
+    /* plate vignette */
+    radial-gradient(120% 120% at 50% 0%, transparent 55%,
+      color-mix(in srgb, var(--fg-base) 10%, transparent) 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Nocturne only: a scatter of gilt stars behind the plate. */
+html:not([data-theme="light"]) body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 22% 28%, color-mix(in srgb, var(--accent) 50%, transparent) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 68% 12%, color-mix(in srgb, var(--fg-base) 32%, transparent) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 84% 62%, color-mix(in srgb, var(--accent) 34%, transparent) 0 1.3px, transparent 2px),
+    radial-gradient(circle at 40% 78%, color-mix(in srgb, var(--fg-base) 24%, transparent) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 8% 66%,  color-mix(in srgb, var(--accent) 26%, transparent) 0 1px, transparent 1.5px);
+  background-size: 340px 340px, 260px 260px, 420px 420px, 300px 300px, 380px 380px;
+}
+
+/* ---- Panels as pressed paper plates: double-ruled accent edge ---- */
+.canvas-core, .mor-post, .mor-panel, .main-header, .mor-footer,
+.mor-panel, .card, .link-card {
+  background: color-mix(in srgb, var(--bg-panel) 96%, var(--accent)) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-color)) !important;
+  border-radius: 3px !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--bg-base) 50%, transparent),
+    inset 0 0 0 4px color-mix(in srgb, var(--accent) 7%, transparent),
+    0 10px 30px color-mix(in srgb, var(--fg-base) 10%, transparent) !important;
+}
+
+/* ---- Inscriptional headings: Roman capitals, letterspaced ---- */
+.mor-post h1, .mor-masthead-title, .main-header h1, .section-title, .hero h1 {
+  font-family: var(--font-heading) !important;
+  letter-spacing: 0.045em !important;
+}
+
+/* Signature rule: a hairline broken by a gilt star. */
+.mor-post h1::after, .section-title::after {
+  content: "✦";
+  display: block;
+  width: 200px;
+  margin-top: 0.7rem;
+  color: var(--accent);
+  font-size: 0.7rem;
+  line-height: 1;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, var(--bg-base)), transparent)
+    1.5em 50% / calc(100% - 1.5em) 1px no-repeat;
+}
+
+/* ---- Links: body ink, gilded on hover ---- */
+a {
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 4px;
+}
+a:hover { color: var(--accent) !important; }
+
+/* ---- Reading selection: ink pressed into gold leaf ---- */
+::selection { background: var(--accent); color: var(--bg-base); }
+
+/* ---- The lexicographer's hand: star-tipped stylus, manicule, I-beam ---- */
+:root {
+  --theme-cursor-default: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M3 2L6 2L16 16L13 19L11 17L3 2Z' fill='{{ACCENT_URLENCODED}}' stroke='%23100d08' stroke-width='1'/><path d='M17.5 17.5l1.2 2.4 2.4 1.2-2.4 1.2-1.2 2.4-1.2-2.4-2.4-1.2 2.4-1.2z' fill='{{ACCENT_URLENCODED}}'/></svg>") 3 2, auto;
+  --theme-cursor-pointer: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M9 2.2c-.7 0-1.3.6-1.3 1.3v6.5H6.9c-.6 0-1.1.3-1.4.8-.3.5-.2 1.1.1 1.6l2.2 3.1c.5.7 1.3 1.1 2.1 1.1h3.4c1 0 1.9-.7 2.1-1.7l.7-3.2c.2-.9-.3-1.8-1.2-2-.2 0-.3-.1-.5-.1h-2.8V3.5c0-.7-.6-1.3-1.3-1.3z' fill='{{ACCENT_URLENCODED}}' stroke='%23100d08' stroke-width='1'/></svg>") 9 2, pointer;
+}
+input, textarea { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M9 3h6M12 3v18M9 21h6' fill='none' stroke='{{ACCENT_URLENCODED}}' stroke-width='1.6'/></svg>") 12 12, text !important; }
+'''
+
+# --- Base palette: the Nocturne (the site's dark-first look) ---
+[colors]
+bg_base = "#100d08"
+fg_base = "#eae0c9"
+fg_muted = "#a89b7c"
+accent = "#c9a648"
+border = "#3a3122"
+panel_border_width = "1px"
+glow_spread = "14px"
+hover_scale = "1.01"
+
+[colors.bg_panel]
+mode = "Solid"
+color = "#181310"
+
+[colors.bg_elevated]
+mode = "Solid"
+color = "#1d1712"
+
+[background.mode.Solid]
+color = "#100d08"
+
+[typography]
+body_font_stack = "'IM Fell English', Georgia, 'Times New Roman', serif"
+heading_font_stack = "'Cinzel', 'IM Fell DW Pica', Georgia, serif"
+mono_font_stack = "'Courier New', monospace"
+base_size = "17px"
+scale_ratio = "1.333"
+line_height = "1.7"
+heading_weight = "500"
+
+# Pill buttons, gold plate on ink — the site's .btn-primary.
+[buttons]
+radius = "999px"
+border_width = "1px"
+border_style = "solid"
+text_transform = "none"
+letter_spacing = "0.02em"
+padding_x = "1.2rem"
+padding_y = "0.5rem"
+font_weight = "500"
+fill = "gradient"
+gradient_from = "var(--accent)"
+gradient_to = "color-mix(in srgb, var(--accent) 82%, var(--bg-base))"
+gradient_angle = "180deg"
+border_color = "var(--accent)"
+text_color = "var(--bg-base)"
+box_shadow = "0 2px 8px color-mix(in srgb, var(--fg-base) 15%, transparent)"
+elevation = "subtle"
+hover_effect = "lift"
+transition_ms = "200ms"
+easing = "cubic-bezier(0.16, 1, 0.3, 1)"
+pressed_feedback = true
+
+# --- Day folio: the same leaf read by daylight ---
+[light.colors]
+bg_base = "#ece2c8"
+fg_base = "#2a2113"
+fg_muted = "#6f5f42"
+accent = "#8a6413"
+border = "#c8b285"
+panel_border_width = "1px"
+glow_spread = "14px"
+hover_scale = "1.01"
+
+[light.colors.bg_panel]
+mode = "Solid"
+color = "#f3ead2"
+
+[light.colors.bg_elevated]
+mode = "Solid"
+color = "#f8f1de"
+
+[light.background.mode.Solid]
+color = "#ece2c8"
+
+# --- Nocturne: candlelit parchment on sepia-black ink ---
+[dark.colors]
+bg_base = "#100d08"
+fg_base = "#eae0c9"
+fg_muted = "#a89b7c"
+accent = "#c9a648"
+border = "#3a3122"
+panel_border_width = "1px"
+glow_spread = "14px"
+hover_scale = "1.01"
+
+[dark.colors.bg_panel]
+mode = "Solid"
+color = "#181310"
+
+[dark.colors.bg_elevated]
+mode = "Solid"
+color = "#1d1712"
+
+[dark.background.mode.Solid]
+color = "#100d08"
+
+[scrollbars]
+width = "10px"
+track_color = "color-mix(in srgb, var(--fg-base) 6%, var(--bg-base))"
+thumb_color = "color-mix(in srgb, var(--accent) 55%, var(--bg-base))"
+thumb_hover_color = "var(--accent)"
+
+# --- Variants: other editions of the same site -------------------------------
+
+# The site's original hand: pure chalk on a blackboard, violet ink for
+# hovers and buttons ("Ultra-White Edition", spring 2026).
+[[variants]]
+name = "Ultra-White Chalkboard"
+[variants.light]
+colors = { bg_base = "#ffffff", fg_base = "#000000", fg_muted = "#3d3d3d", accent = "#8a6fd4", border = "#000000", bg_panel = { mode = "Solid", color = "#f7f7f7" }, bg_elevated = { mode = "Solid", color = "#ffffff" } }
+background = { mode = { Solid = { color = "#ffffff" } } }
+[variants.dark]
+colors = { bg_base = "#000000", fg_base = "#ffffff", fg_muted = "#cfcfcf", accent = "#b89cff", border = "#ffffff", bg_panel = { mode = "Solid", color = "#000000" }, bg_elevated = { mode = "Solid", color = "#0a0a0a" } }
+background = { mode = { Solid = { color = "#000000" } } }
+
+# The two hands blended: the folio's night plate written in violet ink.
+[[variants]]
+name = "Violet Nocturne"
+[variants.light]
+colors = { bg_base = "#e9e3ef", fg_base = "#241d2e", fg_muted = "#655a75", accent = "#6a4fb8", border = "#bfb3d0", bg_panel = { mode = "Solid", color = "#f1ecf6" }, bg_elevated = { mode = "Solid", color = "#f7f3fb" } }
+background = { mode = { Solid = { color = "#e9e3ef" } } }
+[variants.dark]
+colors = { bg_base = "#0e0b14", fg_base = "#e6dff0", fg_muted = "#9c8fb3", accent = "#b89cff", border = "#332a47", bg_panel = { mode = "Solid", color = "#151020" }, bg_elevated = { mode = "Solid", color = "#1b1529" } }
+background = { mode = { Solid = { color = "#0e0b14" } } }

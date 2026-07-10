@@ -1,0 +1,85 @@
+/* =========================================================
+   18-Footer-Mega.css
+   Mega-footer ONLY: the multi-column link directory grid.
+   Pulled in only when footer_variant resolves to the "mor"
+   manifest (MorFooterMega.xml). Layers on top of
+   18-Footer-Base.css.
+   ========================================================= */
+
+.footer-mega-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 30px;
+  margin-bottom: 30px;
+  min-width: 0;
+}
+
+.footer-col a {
+  color: var(--fg-dim);
+  border-bottom: none;
+  display: inline-block;
+}
+
+.footer-col a:hover,
+.footer-col a:focus-visible {
+  color: var(--bg-base);
+  background: var(--fg-base);
+  text-shadow: none;
+}
+
+/* --- NEW: Logo & Brand Constraints --- */
+.footer-brand-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 30px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer-logo {
+  max-width: 200px;
+  max-height: 80px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.footer-brand-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--fg-base);
+}
+
+/* --- NEW: Footer System Info Layout Fix --- */
+.footer-sys-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer-copyright {
+  margin: 0;
+  flex: 1 1 100%;
+}
+
+.footer-legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
+@media (min-width: 768px) {
+  .footer-copyright {
+    flex: 0 1 auto;
+  }
+}

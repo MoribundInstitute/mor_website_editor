@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=MorWebsite Editor
+Comment=Visual design-token theme editor for local websites
+Exec=/home/deo-user/ai_workspace/mor_website_editor/target/release/mor_website_dioxus_ui
+Icon=com.moribundinstitute.morwebsite-editor
+StartupWMClass=com.moribundinstitute.morwebsite-editor
+Terminal=false
+Categories=Development;WebDevelopment;

@@ -1,0 +1,420 @@
+name = "Mor Web 1.0"
+description = "A 1998 frameset homepage, restored with care: teal desktop, silver bevelled frames, navy title bars, blue links that turn purple when you have been there. Under construction forever. Desktops: teal default, spruce, rose, eggplant."
+
+preset_css = '''
+/* ============================================================
+   Web 1.0 Frames
+   The mid-90s personal homepage as an affectionate period
+   piece: every region reads as its own <frame> — silver panel,
+   outset bevel edge, navy title bar. Links are unvisited-blue
+   and visited-purple, rules are grooved, fields are sunken,
+   and the footer is a status bar that is still under
+   construction. No glow, no radius, no soft shadows: light
+   comes from bevels, exactly like it used to.
+   ============================================================ */
+
+/* ---- Mode-scoped materials (dark is the :root default) ---- */
+:root {
+  --w1-link: var(--accent);
+  --w1-visited: #c7a3e6;
+  --w1-active: #ff6a4d;
+  --w1-bevel-hi: rgba(255, 255, 255, 0.14);
+  --w1-bevel-lo: rgba(0, 0, 0, 0.55);
+  --w1-titlebar-a: color-mix(in srgb, var(--accent) 32%, #0b0d16);
+  --w1-titlebar-b: color-mix(in srgb, var(--accent) 60%, #1a1e2e);
+  --w1-titlebar-fg: #eaf1ff;
+  --w1-field: #1d2027;
+  /* Bevels do the lighting in 1998 — retire the glow system. */
+  --glow: none;
+  --glow-strong: none;
+}
+
+html[data-theme="light"] {
+  --w1-link: var(--accent);
+  --w1-visited: #551a8b;
+  --w1-active: #cc2200;
+  --w1-bevel-hi: rgba(255, 255, 255, 0.85);
+  --w1-bevel-lo: rgba(0, 0, 0, 0.32);
+  --w1-titlebar-a: color-mix(in srgb, var(--accent) 72%, #000000);
+  --w1-titlebar-b: color-mix(in srgb, var(--accent) 60%, #7ab6e8);
+  --w1-titlebar-fg: #ffffff;
+  --w1-field: #ffffff;
+  --glow: none;
+  --glow-strong: none;
+}
+
+/* ============================================================
+   FRAMESET ILLUSION
+   Header, sidebars, canvas and footer each become a "frame":
+   opaque silver surface with a chunky outset divider border.
+   The tiled desktop shows through wherever frames end.
+   ============================================================ */
+.main-header,
+.mor-panel,
+.canvas-core,
+.mor-footer {
+  background: var(--bg-panel);
+  border: 2px outset var(--border-color);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Sharp corners across the board — 1998 had no border-radius. */
+.mor-post,
+.mor-panel,
+.mor-panel summary,
+.mor-toc-title,
+.mor-footer h3,
+.mor-post img {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============================================================
+   HEADER — a window with a real title bar
+   ============================================================ */
+.main-header {
+  background: linear-gradient(90deg, var(--w1-titlebar-a), var(--w1-titlebar-b));
+  color: var(--w1-titlebar-fg);
+  padding: 8px 16px;
+  border-bottom: 2px outset var(--border-color);
+}
+
+.mor-brand-name,
+.mor-masthead-title {
+  color: var(--w1-titlebar-fg);
+  text-shadow: none;
+  letter-spacing: 1px;
+}
+
+.mor-brand:hover .mor-brand-name,
+.mor-brand:focus-visible .mor-brand-name {
+  color: var(--w1-titlebar-fg);
+}
+
+/* Menu-bar navigation: no inverse-video hover, a proper
+   Win95 menu highlight instead. */
+.mor-nav a {
+  color: var(--fg-base);
+  border-bottom: none;
+  padding: 2px 8px;
+}
+
+.mor-nav a:hover,
+.mor-nav a:focus-visible {
+  background: var(--w1-titlebar-a);
+  color: var(--w1-titlebar-fg);
+  text-decoration: none;
+}
+
+/* ============================================================
+   CONTENT — the document frame
+   ============================================================ */
+.mor-post {
+  border-bottom: 3px groove var(--border-color);
+  padding-bottom: 24px;
+}
+
+.mor-post h1,
+.mor-masthead-title {
+  font-size: 1.7rem;
+  letter-spacing: 0.01em;
+  border-bottom: 3px double color-mix(in srgb, var(--fg-base) 45%, transparent);
+  padding-bottom: 6px;
+}
+
+.mor-post h1 a:hover,
+.mor-post h1 a:focus-visible {
+  text-decoration: underline;
+  text-shadow: none;
+}
+
+/* Meta text as a status readout. */
+.mor-masthead-eyebrow,
+.mor-footer-strip p {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+/* The canonical link contract: blue, underlined, purple once
+   visited, red while the mouse button is down. */
+.mor-post a,
+.mor-panel a,
+.mor-footer a {
+  color: var(--w1-link);
+  border-bottom: none;
+  text-decoration: underline;
+}
+
+.mor-post a:visited,
+.mor-panel a:visited,
+.mor-footer a:visited {
+  color: var(--w1-visited);
+}
+
+.mor-post a:hover,
+.mor-post a:focus-visible,
+.mor-panel a:hover,
+.mor-panel a:focus-visible,
+.mor-footer a:hover,
+.mor-footer a:focus-visible {
+  background: transparent;
+  color: var(--w1-link);
+  text-decoration: underline;
+  text-decoration-style: double;
+}
+
+.mor-post a:active,
+.mor-panel a:active,
+.mor-footer a:active {
+  color: var(--w1-active);
+}
+
+/* Grooved horizontal rules — the signature divider of the era. */
+.mor-post hr {
+  border: 0;
+  border-top: 3px groove var(--border-color);
+  margin: 28px 0;
+}
+
+/* Sunken wells for quoted and preformatted matter. */
+.mor-post blockquote {
+  margin: 20px 0;
+  padding: 12px 16px;
+  border: 2px inset var(--border-color);
+  background: color-mix(in srgb, var(--bg-panel) 90%, var(--fg-base));
+  font-style: italic;
+}
+
+.mor-post pre {
+  border: 2px inset var(--border-color);
+  background: var(--w1-field);
+}
+
+.mor-post code {
+  border: 1px solid var(--border-color);
+  background: var(--w1-field);
+}
+
+/* Images arrive matted and framed, like a photo on a homepage. */
+.mor-post img {
+  border: 2px outset var(--border-color);
+  background: var(--bg-panel);
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   SIDEBARS — every panel gets its own little title bar
+   ============================================================ */
+.mor-panel summary,
+.mor-toc-title,
+.mor-footer h3 {
+  background: linear-gradient(90deg, var(--w1-titlebar-a), var(--w1-titlebar-b));
+  color: var(--w1-titlebar-fg);
+  border-bottom: 2px outset var(--border-color);
+}
+
+/* ============================================================
+   FOOTER — the status bar, still under construction
+   ============================================================ */
+.mor-footer {
+  padding: 18px 20px 12px;
+  border-top: 2px outset var(--border-color);
+}
+
+.mor-footer-strip,
+.mor-footer-hairline {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border-top: none;
+  padding-top: 10px;
+}
+
+/* Sunken status-bar cells. */
+.mor-footer-strip p,
+.mor-footer-hairline p {
+  border: 1px solid;
+  border-color: var(--w1-bevel-lo) var(--w1-bevel-hi) var(--w1-bevel-hi) var(--w1-bevel-lo);
+  padding: 3px 10px;
+}
+
+.mor-footer-strip::after {
+  content: "UNDER CONSTRUCTION";
+  border: 1px solid;
+  border-color: var(--w1-bevel-lo) var(--w1-bevel-hi) var(--w1-bevel-hi) var(--w1-bevel-lo);
+  padding: 3px 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--w1-active);
+  animation: w1-blink 1.2s steps(2, end) infinite;
+}
+
+@keyframes w1-blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mor-footer-strip::after { animation: none; }
+}
+
+/* ============================================================
+   GLOBAL FLOURISHES
+   ============================================================ */
+/* Text selection is a title-bar highlight. */
+::selection {
+  background: var(--w1-titlebar-a);
+  color: var(--w1-titlebar-fg);
+}
+
+/* Keyboard focus: the dotted marching-ants rectangle. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 1px dotted var(--fg-base);
+  outline-offset: 2px;
+}
+
+/* Period cursors: pixel arrow, gloved pointer, chunky I-beam. */
+body { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M1 1L1 17L5 13L8 19L11 18L8 12L14 12Z' fill='%23c0c0c0' stroke='%23000000' stroke-width='1.6'/></svg>") 1 1, auto; }
+a, button { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M9 2.2c-.7 0-1.3.6-1.3 1.3v6.5H6.9c-.6 0-1.1.3-1.4.8-.3.5-.2 1.1.1 1.6l2.2 3.1c.5.7 1.3 1.1 2.1 1.1h3.4c1 0 1.9-.7 2.1-1.7l.7-3.2c.2-.9-.3-1.8-1.2-2-.2 0-.3-.1-.5-.1h-2.8V3.5c0-.7-.6-1.3-1.3-1.3z' fill='%23c0c0c0' stroke='%23000000' stroke-width='1.6'/></svg>") 9 2, pointer; }
+input, textarea { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M9 3h6M12 3v18M9 21h6' fill='none' stroke='%23000000' stroke-width='1.6'/></svg>") 12 12, text; }
+'''
+
+# Canonical palette: the daylight machine (silver frames on a teal desktop).
+[colors]
+bg_base = "#008080"
+fg_base = "#111111"
+fg_muted = "#4d4a45"
+accent = "#0000cc"
+border = "#9c9a94"
+panel_border_width = "2px"
+glow_spread = "0px"
+hover_scale = "1.0"
+
+[colors.bg_panel]
+mode = "Solid"
+color = "#c0c0c0"
+
+[colors.bg_elevated]
+mode = "Solid"
+color = "#d4d0c8"
+
+# Teal desktop with a woven pixel texture (8x8 SVG tile).
+[background.mode.Tile]
+url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMwMDgwODAiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMDA2ZTZlIi8+PC9zdmc+"
+
+[typography]
+body_font_stack = "'Times New Roman', Times, serif"
+heading_font_stack = "'Times New Roman', Times, serif"
+mono_font_stack = "'Courier New', Courier, monospace"
+base_size = "17px"
+scale_ratio = "1.2"
+line_height = "1.55"
+heading_weight = "700"
+
+# Win95 push button, entirely config-driven: flat silver face,
+# hand-tuned two-step bevel, instant response, dotted focus rect.
+[buttons]
+radius = "0px"
+border_width = "1px"
+border_style = "solid"
+border_color = "color-mix(in srgb, var(--fg-base) 55%, var(--bg-panel))"
+padding_x = "14px"
+padding_y = "5px"
+text_transform = "none"
+font_weight = "700"
+fill = "solid"
+elevation = "flat"
+bg_color = "var(--bg-highlight)"
+text_color = "var(--fg-base)"
+box_shadow = "inset -2px -2px 0 var(--w1-bevel-lo), inset 2px 2px 0 var(--w1-bevel-hi)"
+hover_effect = "brighten"
+transition_ms = "0ms"
+pressed_feedback = true
+focus_ring_color = "var(--fg-base)"
+focus_ring_width = "1px"
+
+# ---- Light: the canonical 1998 daylight machine ----
+[light.colors]
+bg_base = "#008080"
+fg_base = "#111111"
+fg_muted = "#4d4a45"
+accent = "#0000cc"
+border = "#9c9a94"
+panel_border_width = "2px"
+glow_spread = "0px"
+hover_scale = "1.0"
+
+[light.colors.bg_panel]
+mode = "Solid"
+color = "#c0c0c0"
+
+[light.colors.bg_elevated]
+mode = "Solid"
+color = "#d4d0c8"
+
+[light.background.mode.Tile]
+url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMwMDgwODAiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMDA2ZTZlIi8+PC9zdmc+"
+
+# ---- Dark: the same machine after sunset — midnight-navy
+# desktop, graphite frames, CRT-warm text, dusk-blue title bars.
+[dark.colors]
+bg_base = "#10142b"
+fg_base = "#e6e3da"
+fg_muted = "#a39f93"
+accent = "#7fb0ff"
+border = "#565b66"
+panel_border_width = "2px"
+glow_spread = "0px"
+hover_scale = "1.0"
+
+[dark.colors.bg_panel]
+mode = "Solid"
+color = "#2b2e37"
+
+[dark.colors.bg_elevated]
+mode = "Solid"
+color = "#363a45"
+
+[dark.background.mode.Tile]
+url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMxMDE0MmIiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMTgxZDNhIi8+PC9zdmc+"
+
+# Chunky 16px scrollbar; mid greys read correctly on both modes.
+[scrollbars]
+width = "16px"
+track_color = "#cdcac3"
+thumb_color = "#8f8c85"
+thumb_hover_color = "#6e6b64"
+
+# --- Color variants: the classic Windows appearance schemes ------------------
+# Silver chrome is the constant (that IS the aesthetic); the desktop tile,
+# title bars, and link ink change together, like picking a .theme file.
+
+[[variants]]
+name = "Spruce"
+[variants.light]
+colors = { bg_base = "#31694f", fg_base = "#111111", fg_muted = "#4d4a45", accent = "#1e5c38", border = "#9c9a94", bg_panel = { mode = "Solid", color = "#c0c0c0" }, bg_elevated = { mode = "Solid", color = "#d4d0c8" } }
+background = { mode = { Tile = { url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMzMTY5NGYiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMmE1YzQ0Ii8+PC9zdmc+" } } }
+[variants.dark]
+colors = { bg_base = "#101d16", fg_base = "#e2e6dc", fg_muted = "#9ca698", accent = "#7fd0a0", border = "#56605a", bg_panel = { mode = "Solid", color = "#262e28" }, bg_elevated = { mode = "Solid", color = "#303a32" } }
+background = { mode = { Tile = { url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMxMDFkMTYiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMTYyNDFjIi8+PC9zdmc+" } } }
+
+[[variants]]
+name = "Rose"
+[variants.light]
+colors = { bg_base = "#a8787f", fg_base = "#111111", fg_muted = "#4d4a45", accent = "#8e2e48", border = "#9c9a94", bg_panel = { mode = "Solid", color = "#c0c0c0" }, bg_elevated = { mode = "Solid", color = "#d4d0c8" } }
+background = { mode = { Tile = { url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiNhODc4N2YiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjOTg2YTcwIi8+PC9zdmc+" } } }
+[variants.dark]
+colors = { bg_base = "#1d1216", fg_base = "#e8dee2", fg_muted = "#a6969c", accent = "#e08898", border = "#60565a", bg_panel = { mode = "Solid", color = "#2e262a" }, bg_elevated = { mode = "Solid", color = "#3a3036" } }
+background = { mode = { Tile = { url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMxZDEyMTYiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMjQxODIwIi8+PC9zdmc+" } } }
+
+[[variants]]
+name = "Eggplant"
+[variants.light]
+colors = { bg_base = "#4a3a5e", fg_base = "#111111", fg_muted = "#4d4a45", accent = "#5e3a86", border = "#9c9a94", bg_panel = { mode = "Solid", color = "#c0c0c0" }, bg_elevated = { mode = "Solid", color = "#d4d0c8" } }
+background = { mode = { Tile = { url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM0YTNhNWUiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjNDAzMjUyIi8+PC9zdmc+" } } }
+[variants.dark]
+colors = { bg_base = "#171224", fg_base = "#e2dee8", fg_muted = "#9c96a8", accent = "#b491e0", border = "#5a5666", bg_panel = { mode = "Solid", color = "#292435" }, bg_elevated = { mode = "Solid", color = "#343048" } }
+background = { mode = { Tile = { url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMxNzEyMjQiLz48cGF0aCBkPSJNMCAwaDF2MUgwek00IDRoMXYxSDR6IiBmaWxsPSIjMWUxODMwIi8+PC9zdmc+" } } }

@@ -1,0 +1,496 @@
+name = "Mor Daily Folio"
+description = "The site as broadsheet. Ink on newsprint: a Playfair nameplate between double rules, small-caps datelines, drop caps in editorial red, hairline column rules, and a lamplit late edition after dark. Editions: newsprint red, salmon financial, sporting green, penny dreadful."
+
+preset_css = '''
+/* ============================================================
+   Mor Daily Folio - newspaper preset
+   Light mode is the hero: warm newsprint, black ink, one
+   editorial red. Dark mode is the "late edition" - the same
+   paper read under a night-desk lamp. Everything routes
+   through the theme variables so the toggle stays clean.
+   ============================================================ */
+
+/* Laid-paper texture: faint chain lines over the base color.
+   fg-mixed at 3% so it adapts to both editions automatically. */
+body {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--fg-base) 3%, transparent) 0 1px,
+      transparent 1px 28px),
+    radial-gradient(
+      ellipse 120% 60% at 50% 0%,
+      color-mix(in srgb, var(--fg-base) 4%, transparent),
+      transparent 70%);
+}
+
+/* Set type is picked out in editorial red, not a highlight bar. */
+::selection {
+  background: var(--accent);
+  color: var(--bg-elevated);
+}
+
+/* ---------- Masthead ------------------------------------------------
+   Nameplate between double rules. */
+.main-header {
+  background: var(--bg-panel);
+  border-top: 4px double var(--fg-base);
+  border-bottom: 4px double var(--fg-base);
+  box-shadow: none;
+}
+
+.mor-brand-name,
+.mor-masthead-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  font-weight: var(--heading-weight);
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  color: var(--fg-base);
+  text-shadow: none;
+}
+
+.mor-brand:hover .mor-brand-name,
+.mor-brand:focus-visible .mor-brand-name {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.mor-brand {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.main-header a {
+  border-bottom: none;
+}
+
+/* ---------- Story plates -------------------------------------------
+   Each post is a plate of set type: paper surface, hairline
+   frame, square corners, no shadow. */
+.mor-post {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 32px 36px 24px;
+  margin-bottom: 28px;
+}
+
+.mor-post h1 {
+  font-family: var(--font-heading);
+  font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+  line-height: 1.15;
+  margin: 0 0 12px;
+}
+
+.mor-post h1 a:hover,
+.mor-post h1 a:focus-visible {
+  background: transparent;
+  color: var(--accent);
+  text-shadow: none;
+}
+
+/* Dateline: small caps between hairlines. */
+.mor-masthead-eyebrow,
+.mor-footer-strip p {
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 6px 2px;
+  margin-bottom: 22px;
+  font-variant: small-caps;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+}
+
+.mor-pill {
+  color: var(--accent);
+  border-bottom: none;
+}
+
+/* ---------- Body copy ----------------------------------------------
+   Justified, hyphenated, two columns with a hairline rule at
+   broadsheet widths. */
+.mor-post {
+  font-size: 1rem;
+  line-height: 1.65;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+@media (min-width: 900px) {
+  .mor-post {
+    column-count: 2;
+    column-gap: 32px;
+    column-rule: 1px solid var(--border-color);
+  }
+}
+
+/* Drop cap on the lead paragraph, set in the display face and
+   inked in editorial red. */
+.mor-post > p:first-of-type::first-letter {
+  float: left;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 3.4em;
+  line-height: 0.8;
+  padding: 0.06em 0.1em 0 0;
+  color: var(--accent);
+}
+
+/* Classic lead-in: the first line of the lead paragraph in small caps. */
+.mor-post > p:first-of-type::first-line {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+/* Sub-heads: crossheads in the display face and small caps. */
+.mor-post h2 {
+  font-size: 1.45rem;
+  margin: 1.2em 0 0.4em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  break-after: avoid;
+}
+
+.mor-post h3 {
+  font-family: var(--font-body);
+  font-variant: small-caps;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  margin: 1.1em 0 0.3em;
+  break-after: avoid;
+}
+
+.mor-post h4 {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 1rem;
+  margin: 1em 0 0.3em;
+}
+
+/* Pull quotes: centered, italic, held between hairlines. */
+.mor-post blockquote {
+  break-inside: avoid;
+  margin: 1.4em 0;
+  padding: 14px 10px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  border-left: none;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Section break: the dinkus. */
+.mor-post hr {
+  border: none;
+  margin: 1.8em 0;
+  text-align: center;
+}
+
+.mor-post hr::after {
+  content: "* * *";
+  display: block;
+  letter-spacing: 0.6em;
+  color: var(--fg-muted);
+}
+
+/* Wire-photo treatment: halftone grayscale, color on hover. */
+.mor-post img {
+  border: 1px solid var(--border-color);
+  filter: grayscale(92%) contrast(1.04);
+  transition: filter 220ms ease;
+}
+
+.mor-post img:hover {
+  filter: none;
+}
+
+.mor-post figcaption {
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+/* Stock-table rules: heavy head rule, hairline rows. */
+.mor-post table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92rem;
+}
+
+.mor-post th {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--fg-base);
+}
+
+.mor-post td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mor-post abbr,
+.mor-post cite {
+  font-variant: small-caps;
+  font-style: normal;
+  letter-spacing: 0.04em;
+}
+
+/* Copy links: dotted ink underline, red when live. No inverse
+   highlight bar inside running text. */
+.mor-post a,
+.mor-panel a {
+  color: var(--fg-base);
+  border-bottom: 1px dotted var(--fg-muted);
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.mor-post a:hover,
+.mor-post a:focus-visible,
+.mor-panel a:hover,
+.mor-panel a:focus-visible {
+  background: transparent;
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+
+/* ---------- Side columns -------------------------------------------
+   "Elsewhere in this edition": paper panels, small-caps heads
+   over a heavy rule, square index chips. */
+.mor-panel {
+  background: var(--bg-panel);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.mor-panel summary,
+.mor-toc-title,
+.mor-footer h3 {
+  background: transparent;
+  border-bottom: 2px solid var(--fg-base);
+  font-variant: small-caps;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow: none;
+}
+
+.mor-pill {
+  border: 1px solid var(--border-color);
+  border-radius: 0;
+}
+
+.mor-pill:hover,
+.mor-pill:focus-visible {
+  background: var(--bg-elevated);
+  border-color: var(--fg-base);
+  box-shadow: none;
+}
+
+/* ---------- Colophon ------------------------------------------------ */
+.mor-footer {
+  background: var(--bg-panel);
+  border-top: 4px double var(--fg-base);
+  text-align: center;
+  font-variant: small-caps;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--fg-muted);
+}
+
+/* ---------- Ledger-rule forms --------------------------------------
+   Inputs write on the paper: no boxes, a single ink rule that
+   turns editorial-red when the pen is live. */
+input[type='text'],
+input[type='search'],
+input[type='email'],
+textarea {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--fg-muted) !important;
+  border-radius: 0 !important;
+  font-family: var(--font-body) !important;
+  color: var(--fg-base) !important;
+  box-shadow: none !important;
+}
+
+input[type='text']:focus,
+input[type='search']:focus,
+input[type='email']:focus,
+textarea:focus {
+  outline: none !important;
+  border-bottom: 2px solid var(--accent) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-style: italic;
+  color: color-mix(in srgb, var(--fg-muted) 80%, transparent) !important;
+}
+
+/* ---------- Late edition -------------------------------------------
+   After dark the wire photos sit deeper into the page, as if
+   read under a desk lamp. */
+html[data-theme="dark"] .mor-post img {
+  filter: grayscale(100%) brightness(0.9) contrast(1.06);
+}
+
+html[data-theme="dark"] .mor-post img:hover {
+  filter: brightness(0.96);
+}
+
+/* ---- Theme cursors: the editor's desk — ink arrow, red pen nib, caret ---- */
+body { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M1 1L1 17L5 13L8 19L11 18L8 12L14 12Z' fill='%231c1a17' stroke='%23f4f1ea' stroke-width='1'/></svg>") 1 1, auto !important; }
+a, button { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M4 20l2-6 9-9c.8-.8 2.2-.8 3 0s.8 2.2 0 3l-9 9-6 2z' fill='{{ACCENT_URLENCODED}}' stroke='%23f4f1ea' stroke-width='1'/><path d='M14 5l4 4' stroke='%23f4f1ea' stroke-width='1'/></svg>") 4 20, pointer !important; }
+input, textarea { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M9 3h6M12 3v18M9 21h6' fill='none' stroke='%231c1a17' stroke-width='1.6'/></svg>") 12 12, text !important; }
+'''
+
+# ---------------------------------------------------------------------
+# Base config = the hero (light / newsprint) palette.
+# ---------------------------------------------------------------------
+[colors]
+bg_base = "#e8e1cf"
+fg_base = "#191512"
+fg_muted = "#6d6252"
+accent = "#8e1c1c"
+border = "#c6b998"
+panel_border_width = "1px"
+glow_spread = "0px"
+hover_scale = "1.0"
+
+[colors.bg_panel]
+mode = "Solid"
+color = "#f3edde"
+
+[colors.bg_elevated]
+mode = "Solid"
+color = "#faf6ea"
+
+[background.mode.Solid]
+color = "#e8e1cf"
+
+[typography]
+body_font_stack = "'Lora', Georgia, 'Times New Roman', serif"
+heading_font_stack = "'Playfair Display', 'Times New Roman', Times, serif"
+mono_font_stack = "'Courier New', Courier, monospace"
+base_size = "17px"
+scale_ratio = "1.25"
+line_height = "1.6"
+heading_weight = "700"
+
+# Buttons are config-driven: square, hairline ink border, small
+# uppercase type; outline fill inverts to an ink stamp on hover.
+[buttons]
+radius = "0px"
+border_width = "1px"
+border_style = "solid"
+border_color = "var(--fg-base)"
+padding_x = "14px"
+padding_y = "6px"
+text_transform = "uppercase"
+letter_spacing = "0.12em"
+font_weight = "700"
+font_size = "0.78rem"
+fill = "outline"
+elevation = "flat"
+hover_effect = "none"
+transition_ms = "140ms"
+easing = "ease"
+pressed_feedback = true
+focus_ring_color = "var(--accent)"
+focus_ring_width = "2px"
+
+# ---------------------------------------------------------------------
+# Morning edition: newsprint.
+# ---------------------------------------------------------------------
+[light.colors]
+bg_base = "#e8e1cf"
+fg_base = "#191512"
+fg_muted = "#6d6252"
+accent = "#8e1c1c"
+border = "#c6b998"
+panel_border_width = "1px"
+glow_spread = "0px"
+hover_scale = "1.0"
+
+[light.colors.bg_panel]
+mode = "Solid"
+color = "#f3edde"
+
+[light.colors.bg_elevated]
+mode = "Solid"
+color = "#faf6ea"
+
+[light.background.mode.Solid]
+color = "#e8e1cf"
+
+# ---------------------------------------------------------------------
+# Late edition: the same paper under a night-desk lamp - warm
+# charcoal, unbleached-ivory ink, the red turned up to lamplight.
+# ---------------------------------------------------------------------
+[dark.colors]
+bg_base = "#151310"
+fg_base = "#e6ddc8"
+fg_muted = "#998e7c"
+accent = "#d0564a"
+border = "#3c362c"
+panel_border_width = "1px"
+glow_spread = "0px"
+hover_scale = "1.0"
+
+[dark.colors.bg_panel]
+mode = "Solid"
+color = "#1c1915"
+
+[dark.colors.bg_elevated]
+mode = "Solid"
+color = "#231f19"
+
+[dark.background.mode.Solid]
+color = "#151310"
+
+# Scrollbars mixed from theme vars so both editions get matching ink.
+[scrollbars]
+width = "10px"
+track_color = "color-mix(in srgb, var(--fg-base) 6%, var(--bg-base))"
+thumb_color = "color-mix(in srgb, var(--fg-base) 45%, var(--bg-base))"
+thumb_hover_color = "var(--accent)"
+
+# --- Color variants: different editions on their own stock ------------------
+# A scheme is a different newspaper, not a recolored one: the paper stock,
+# ink, and lamplight all move with the masthead.
+
+[[variants]]
+name = "Salmon Financial"
+[variants.light]
+colors = { bg_base = "#eeddc8", fg_base = "#1d1a1c", fg_muted = "#75604f", accent = "#1c3a8e", border = "#d3b394", bg_panel = { mode = "Solid", color = "#f6e7d3" }, bg_elevated = { mode = "Solid", color = "#fbf0e0" } }
+background = { mode = { Solid = { color = "#eeddc8" } } }
+[variants.dark]
+colors = { bg_base = "#131318", fg_base = "#e4ddd2", fg_muted = "#948c85", accent = "#7f9fd8", border = "#38363e", bg_panel = { mode = "Solid", color = "#1a1a20" }, bg_elevated = { mode = "Solid", color = "#212028" } }
+background = { mode = { Solid = { color = "#131318" } } }
+
+[[variants]]
+name = "Sporting Green"
+[variants.light]
+colors = { bg_base = "#dfe4d0", fg_base = "#171c14", fg_muted = "#5f6b52", accent = "#1e5c2f", border = "#b5bf9c", bg_panel = { mode = "Solid", color = "#eaeedb" }, bg_elevated = { mode = "Solid", color = "#f3f6e7" } }
+background = { mode = { Solid = { color = "#dfe4d0" } } }
+[variants.dark]
+colors = { bg_base = "#10140e", fg_base = "#dfe4cd", fg_muted = "#8f9c80", accent = "#63a877", border = "#333c2b", bg_panel = { mode = "Solid", color = "#171c13" }, bg_elevated = { mode = "Solid", color = "#1e2418" } }
+background = { mode = { Solid = { color = "#10140e" } } }
+
+[[variants]]
+name = "Penny Dreadful"
+[variants.light]
+colors = { bg_base = "#dedcd6", fg_base = "#1a181f", fg_muted = "#625e6b", accent = "#5b2a86", border = "#b9b6ac", bg_panel = { mode = "Solid", color = "#ebe9e3" }, bg_elevated = { mode = "Solid", color = "#f3f1ec" } }
+background = { mode = { Solid = { color = "#dedcd6" } } }
+[variants.dark]
+colors = { bg_base = "#131118", fg_base = "#e0dde6", fg_muted = "#8f8a9c", accent = "#9d7bd8", border = "#37333f", bg_panel = { mode = "Solid", color = "#191721" }, bg_elevated = { mode = "Solid", color = "#201d29" } }
+background = { mode = { Solid = { color = "#131118" } } }
