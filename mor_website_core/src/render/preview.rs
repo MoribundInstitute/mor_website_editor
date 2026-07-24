@@ -4,7 +4,6 @@
 
 use super::tracking::{menu_link_anchor, widget_title_h2};
 use super::util::{escape_attr, escape_html, unescape_for_style};
-use crate::config::prefs::RenderPrefs;
 use crate::config::{BackgroundMode, BlogPost, ThemeConfig};
 use std::collections::HashMap;
 
@@ -551,31 +550,11 @@ pub fn render_preview_html(
     );
 
     // Wire up the Plugin Pipeline for the Preview
-    let mut active_plugins: Vec<Box<dyn crate::render::plugins::MorWebsitePlugin>> = Vec::new();
-    if let Ok(toml_str) = std::fs::read_to_string(crate::config::prefs::editor_prefs_path()) {
-        if let Ok(prefs) = toml::from_str::<RenderPrefs>(&toml_str) {
-            for p in prefs.plugins {
-                if p.enabled {
-                    match p.id.as_str() {
-                        "os_chameleon" => {
-                            active_plugins.push(Box::new(crate::render::plugins::OsChameleonPlugin))
-                        }
-                        "dewey_indexer" => active_plugins
-                            .push(Box::new(crate::render::plugins::DeweyIndexerPlugin)),
-                        "workspace_docks" => active_plugins
-                            .push(Box::new(crate::render::plugins::WorkspaceDocksPlugin)),
-                        "notification_bell" => active_plugins
-                            .push(Box::new(crate::render::plugins::NotificationBellPlugin)),
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
+    let active_plugins = crate::render::plugins::load_active_plugins();
 
     let mut plugin_javascript = String::new();
     for plugin in active_plugins {
-        if let Some(js) = plugin.inject_js() {
+        if let Some(js) = plugin.js {
             plugin_javascript.push_str(js);
             plugin_javascript.push('\n');
         }

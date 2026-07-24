@@ -1,7 +1,6 @@
 //! Low-level Blogger XML generator.
 //! Orchestrator. Delegates rendering to component modules.
 
-use crate::config::prefs::RenderPrefs;
 use crate::config::ThemeConfig;
 use crate::render::template_resolver::resolve_template_parts;
 use crate::render::util::{escape_attr, escape_html, first_non_empty};
@@ -51,45 +50,23 @@ pub(super) fn render_template(
 ) -> String {
     let mut parts = resolve_template_parts(config, vfs);
 
-    let mut active_plugins: Vec<Box<dyn crate::render::plugins::MorWebsitePlugin>> = Vec::new();
-    if let Ok(toml_str) = std::fs::read_to_string(crate::config::prefs::editor_prefs_path()) {
-        if let Ok(prefs) = toml::from_str::<RenderPrefs>(&toml_str) {
-            for p in prefs.plugins {
-                if p.enabled {
-                    match p.id.as_str() {
-                        "os_chameleon" => {
-                            active_plugins.push(Box::new(crate::render::plugins::OsChameleonPlugin))
-                        }
-                        "dewey_indexer" => active_plugins
-                            .push(Box::new(crate::render::plugins::DeweyIndexerPlugin)),
-                        "workspace_docks" => active_plugins
-                            .push(Box::new(crate::render::plugins::WorkspaceDocksPlugin)),
-                        "notification_bell" => active_plugins
-                            .push(Box::new(crate::render::plugins::NotificationBellPlugin)),
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
+    let active_plugins = crate::render::plugins::load_active_plugins();
 
     let mut plugin_javascript = String::new();
     let mut plugin_widgets: std::collections::HashMap<&str, String> =
         std::collections::HashMap::new();
 
     for plugin in active_plugins {
-        if let Some(js) = plugin.inject_js() {
-            plugin_javascript.push_str(&js);
+        if let Some(js) = plugin.js {
+            plugin_javascript.push_str(js);
             plugin_javascript.push('\n');
         }
-        if let Some(widgets) = plugin.inject_xml_widgets() {
-            for widget in widgets {
-                let current = plugin_widgets
-                    .entry(widget.target_socket)
-                    .or_insert_with(String::new);
-                current.push_str(&widget.content);
-                current.push('\n');
-            }
+        for widget in plugin.widgets {
+            let current = plugin_widgets
+                .entry(widget.target_socket)
+                .or_insert_with(String::new);
+            current.push_str(&widget.content);
+            current.push('\n');
         }
     }
 

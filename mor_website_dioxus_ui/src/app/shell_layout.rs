@@ -10,7 +10,7 @@ use crate::ui::layout::docks::{
     CodeNavDock, StaticPagesDock, InsertDock, InspectorDock,
 };
 use crate::ui::panels::quick_launch_bar::LaunchButton;
-use crate::ui::panels::theme_palette::effects_panel_2::AdvancedGlowWindow;
+use crate::ui::panels::theme_palette::effects_panel::AdvancedGlowWindow;
 use crate::ui::panels::theme_palette::presets::{PresetFloatingWindow, PresetsPanel};
 use crate::ui::panels::theme_palette::static_pages_panel::StaticPagesFloatingWindow;
 use crate::ui::workspace::website_workspace::WebsiteWorkspace;
